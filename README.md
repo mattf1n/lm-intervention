@@ -1,2 +1,2 @@
 # lm-intervention
-Intervention experiment in language models
+Intervention experiments in language models
