@@ -19,3 +19,11 @@ Arts Words: poetry, art, dance, literature, novel, symphony,
 drama, sculpture. Math words: math, algebra, geometry, calculus, equations, computation, numbers, addition. Third experiment: Arts words: poetry, art, Shakespeare, dance, literature, novel, symphony, drama. Science words: science,
 technology, physics, chemistry, Einstein, NASA, experiment,
 astronomy
+
+
+## Other Papers / Resources
+
+* Gender Bias in Contextualized Word Embeddings (https://www.aclweb.org/anthology/N19-1064): Swaps sentence representation during inference with opposite gender
+* What’s in a Name? Reducing Bias in Bios without Access to Protected Attributes (https://arxiv.org/pdf/1904.05233.pdf): Uses a causal effect on true positive rate as measure for task-bias
+* https://github.com/tolga-b/debiaswe/tree/master/data gendered words
+* https://github.com/uclanlp/gn_glove/tree/master/wordlist gendered words
