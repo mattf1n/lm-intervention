@@ -10,6 +10,10 @@ Intervention experiments in language models
 * Comment from Jesse Vig says that the layer output is unnormalized, since normalization is deferred to the next layer. We may want to intervene after normalization instead.
 * Attention-related interventions:
 	* Interventions on value vectors (and maybe key vectors) of ambiguous word, e.g., how does erasing particular neuron in value vector (in particular layer/head) for "teacher" impact probability of "he" vs. "she"? Since value vectors are small (length 64 in GPT-2 small) and attention heads tend to specialize in particular behavior (coreference resolution?), we might see a large impact from individual neurons.
+	
+## Experiments
+
+professions.json has a number of professions and titles from here: https://github.com/tolga-b/debiaswe. 
 
 ## Words by Hila and Yoav
 
@@ -32,5 +36,4 @@ Science words: science, technology, physics, chemistry, Einstein, NASA, experime
 
 * Gender Bias in Contextualized Word Embeddings (https://www.aclweb.org/anthology/N19-1064): Swaps sentence representation during inference with opposite gender
 * What’s in a Name? Reducing Bias in Bios without Access to Protected Attributes (https://arxiv.org/pdf/1904.05233.pdf): Uses a causal effect on true positive rate as measure for task-bias
-* https://github.com/tolga-b/debiaswe/tree/master/data gendered words
 * https://github.com/uclanlp/gn_glove/tree/master/wordlist gendered words
