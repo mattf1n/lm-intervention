@@ -53,3 +53,4 @@ SG: random idea, but could we study common knowledge with this method, i.e. how 
 * What’s in a Name? Reducing Bias in Bios without Access to Protected Attributes (https://arxiv.org/pdf/1904.05233.pdf): Uses a causal effect on true positive rate as measure for task-bias
 * https://github.com/uclanlp/gn_glove/tree/master/wordlist gendered words
 * Fairness through Causal Awareness: Learning Causal Latent-Variable Models for Biased Data (https://arxiv.org/pdf/1809.02519.pdf) 
+* A causal framework for explaining the predictions of black-box sequence-to-sequence models(https://arxiv.org/pdf/1707.01943.pdf)
