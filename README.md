@@ -21,19 +21,30 @@ Man is to Computer Programmer as Woman is to Homemaker? Debiasing Word Embedding
 
 ## Words by Hila and Yoav
 
-First experiment: Female names: Amy, Joan, Lisa, Sarah, Diana, Kate, Ann, Donna. Male names: John, Paul, Mike,
-Kevin, Steve, Greg, Jeff, Bill. 
+First experiment: 
+
+Female names: Amy, Joan, Lisa, Sarah, Diana, Kate, Ann, Donna. 
+
+Male names: John, Paul, Mike, Kevin, Steve, Greg, Jeff, Bill. 
 
 Family words: home, parents, children, family, cousins, marriage, wedding, relatives.
 
 
 Career words: executive, management, professional, corporation, salary, office, business, career. 
 
-Second experiment: Arts Words: poetry, art, dance, literature, novel, symphony, drama, sculpture. Math words: math, algebra, geometry, calculus, equations, computation, numbers, addition. 
+Second experiment: 
 
-Third experiment: Arts words: poetry, art, Shakespeare, dance, literature, novel, symphony, drama. 
+Arts Words: poetry, art, dance, literature, novel, symphony, drama, sculpture. 
+
+Math words: math, algebra, geometry, calculus, equations, computation, numbers, addition. 
+
+Third experiment: 
+
+Arts words: poetry, art, Shakespeare, dance, literature, novel, symphony, drama. 
 
 Science words: science, technology, physics, chemistry, Einstein, NASA, experiment, astronomy
+
+SG: random idea, but could we study common knowledge with this method, i.e. how much the model has learned facts/genders of known events? 
 
 
 ## Other Papers / Resources
