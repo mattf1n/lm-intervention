@@ -15,6 +15,10 @@ Intervention experiments in language models
 
 professions.json has a number of professions and titles from here: https://github.com/tolga-b/debiaswe. 
 
+male/female_word.txt has biased words, mostly professions so we can use the same sentences. 
+
+Man is to Computer Programmer as Woman is to Homemaker? Debiasing Word Embeddings: this paper has additional intervention methods (john-mary, woman-man, he-she etc.)
+
 ## Words by Hila and Yoav
 
 First experiment: Female names: Amy, Joan, Lisa, Sarah, Diana, Kate, Ann, Donna. Male names: John, Paul, Mike,
