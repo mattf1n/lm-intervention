@@ -8,8 +8,9 @@ Intervention experiments in language models
 * Aggregate statistics of successful interventions nicely. Currently has the number of flips (and log probs) from "he" to "she" continuation. Plot the log probs nicely per layer. 
 * Currently implemented the indirect effect from mediation analysis, i.e. the input stays the same and we modify one mediator (a neuron). Implement the direct effect, i.e. the input changes and we hold one neuron fixed. 
 * Comment from Jesse Vig says that the layer output is unnormalized, since normalization is deferred to the next layer. We may want to intervene after normalization instead.
-* Attention-related interventions:
+* Attention-related analysis:
 	* Interventions on value vectors (and maybe key vectors) of ambiguous word, e.g., how does erasing particular neuron in value vector (in particular layer/head) for "teacher" impact probability of "he" vs. "she"? Since value vectors are small (length 64 in GPT-2 small) and attention heads tend to specialize in particular behavior (coreference resolution?), we might see a large impact from individual neurons.
+	* Does attention "explain" gender-based coreference resolution? (See Figure 4 in https://arxiv.org/pdf/1906.05714.pdf) 
 	
 ## Experiments
 
