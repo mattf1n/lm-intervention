@@ -11,7 +11,9 @@ Intervention experiments in language models
 * Relate the different interventions to causal inference literature. 
   * Currently implemented the indirect effect from mediation analysis, i.e. the input stays the same and we modify one mediator (a neuron). Implement the direct effect, i.e. the input changes and we hold one neuron fixed. 
   * The alpha multiplier may be explained by sensitivity analysis from CI. 
-* Aggregate statistics of successful interventions nicely. Currently has the number of flips (and log probs) from "he" to "she" continuation. Plot the log probs nicely per layer. 
+* Aggregate statistics of successful interventions nicely. Currently has the number of flips (and log probs) from "he" to "she" continuation. 
+  * Plot the log probs nicely per layer. 
+  * Calculate log odds and odds ratio of the two candidates. 
 * Comment from Jesse Vig says that the layer output is unnormalized, since normalization is deferred to the next layer. We may want to intervene after normalization instead.
 * Attention-related analysis:
 	* Interventions on value vectors (and maybe key vectors) of ambiguous word, e.g., how does erasing particular neuron in value vector (in particular layer/head) for "teacher" impact probability of "he" vs. "she"? Since value vectors are small (length 64 in GPT-2 small) and attention heads tend to specialize in particular behavior (coreference resolution?), we might see a large impact from individual neurons.
