@@ -3,6 +3,7 @@ Intervention experiments in language models
 
 
 ## TODOs
+* Refactor code: mostly separate out the class code, also the actual intervention experiment (notice some itnervention type-specific parts)
 * Scaling up
   * Scale up to running interventions on multiple ambiguous words (such as doctor, nurse). 
   * Scale up to using multiple gendered words for determining the desired intervention (actor, actress, etc.) Currently only using "man" and "woman".
