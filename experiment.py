@@ -1,22 +1,22 @@
 
 import torch
-import torch.nn as nn
+# import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-import random
+# import random
 from functools import partial
 from tqdm import tqdm
-from tqdm import tqdm_notebook
+# from tqdm import tqdm_notebook
 
 from collections import Counter, defaultdict
 
-import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
+# import pandas as pd
+# import seaborn as sns
+# import matplotlib.pyplot as plt
 
-from pytorch_pretrained_bert import GPT2LMHeadModel, GPT2Tokenizer
+from pytorch_transformers import GPT2LMHeadModel, GPT2Tokenizer
 
-sns.set(style="ticks", color_codes=True)
+# sns.set(style="ticks", color_codes=True)
 
 np.random.seed(1)
 torch.manual_seed(1)
@@ -71,6 +71,8 @@ class Model():
         self.num_layers = len(self.model.transformer.h)
         # 768 for GPT-2
         self.num_neurons = self.model.transformer.wte.weight.shape[1]
+        # 12 for GPT-2
+        self.num_heads = self.model.transformer.h[0].attn.n_head
 
         # multiplier for intervention; needs to be pretty large (~100) to see a change
         # TODO: plot the intervention results (how many neurons are flipped) for different alphas
@@ -103,13 +105,13 @@ class Model():
         probs = F.softmax(logits, dim=-1)
         return probs[0][outputs]
 
-    def intervene_for_examples(self,
-                               context,
-                               outputs,
-                               repr_difference,
-                               layer,
-                               neuron,
-                               position):
+    def neuron_intervention(self,
+                            context,
+                            outputs,
+                            repr_difference,
+                            layer,
+                            neuron,
+                            position):
         # Hook for changing representation during forward pass
         def intervention_hook(module, input, output, position, neuron, intervention):
             output[0][position][neuron] += intervention
@@ -125,6 +127,29 @@ class Model():
             context,
             outputs)
         mlp_intervention_handle.remove()
+        return new_probabilities
+
+    def head_pruning_intervention(self,
+                                  context,
+                                  outputs,
+                                  layer,
+                                  head):
+        # Recreate model and prune head
+        save_model = self.model
+        # TODO Make this more efficient
+        self.model = GPT2LMHeadModel.from_pretrained('gpt2')
+        self.model.prune_heads({layer: [head]})
+        self.model.eval()
+
+        # Compute probabilities without head
+        new_probabilities = self.get_probabilities_for_examples(
+            context,
+            outputs)
+
+        # Reinstate original model
+        # TODO Handle this in cleaner way
+        self.model = save_model
+
         return new_probabilities
 
     def neuron_intervention_experiment(self, intervention):
@@ -167,7 +192,7 @@ class Model():
             '''
             for layer in tqdm(range(self.num_layers)):
                 for neuron in range(self.num_neurons):
-                    candidate1_prob, candidate2_prob = self.intervene_for_examples(
+                    candidate1_prob, candidate2_prob = self.neuron_intervention(
                         context=context,
                         outputs=intervention.candidates_tok,
                         repr_difference=representation_difference,
