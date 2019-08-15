@@ -61,12 +61,12 @@ Summary of Yonatan's and Jesse's discussion of possible interventions on attenti
 
 Let x = input text, Y = output, and M = mediator (attention mechanism) 
 
-###Indirect effect
+### Indirect effect
 Change M (attention), while keeping x constant, and measure effect on Y. 
 
 One approach is to define M'(x) = M(x'), i.e. assign the attention induced by a different input x'. Some possible implementations of this approach:
 
-#####Masked Language modeling
+##### Masked Language modeling
 
 x = "The technician told the customer that MASK fixed the problem"
 
@@ -84,7 +84,7 @@ The first option (substitute continuation) is preferred. There are two variation
     * Substitute attention weights only for two attention arcs: ("technician", MASK), and ("customer", MASK). This is based on hypothesis that the direct attention between MASK ("he"/"she" position) and occupation words plays a large role in the pronoun prediction.
     * Substitute attention weights for all arcs, but do so individually, so effect of individual arcs can be observed. One likely outcome is that attention arcs ("technician", MASK) and ("customer", MASK) have the biggest impact (of course depending on head).    
 
-#####Language Generation
+##### Language Generation
 
 x = "The technician told the customer that he"
 
@@ -92,7 +92,7 @@ Y = log odds ratio of continuations “fixed the problem” vs “will receive a
 
 M'(x) = M(x'), where x' = "The technician told the customer that <u>she</u>" (changed gender of pronoun)
 
-###Direct effect
+### Direct effect
 
 Change x, while keeping M (attention) constant, and measure change in Y.
 
