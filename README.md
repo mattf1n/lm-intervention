@@ -55,6 +55,48 @@ Science words: science, technology, physics, chemistry, Einstein, NASA, experime
 
 SG: random idea, but could we study common knowledge with this method, i.e. how much the model has learned facts/genders of known events? 
 
+## Attention Interventions
+
+Summary of Yonatan's and Jesse's discussion of possible interventions on attention mechanism.
+
+Let x = input text, Y = output, and M = mediator (attention mechanism) 
+
+###Indirect effect
+Change M (attention), while keeping x constant, and measure effect on Y. 
+
+One approach is to define M'(x) = M(x'), i.e. assign the attention induced by a different input x'. Some possible implementations of this approach:
+
+#####Masked Language modeling
+
+x = "The technician told the customer that MASK fixed the problem"
+
+Y = log odds ratio of the “he” vs “she” prediction: log p(he | x) - log p (she | x). This can be thought of as the amount of gender bias. 
+
+M'(x) = M(x'), where x' = one of following:
+
+* "The technician told the customer that MASK <u>will receive a call</u>" (substitute continuation)
+* "The <u>customer</u> told the <u>technician</u> that MASK fixed the problem" (swap occupation words)
+
+The first option (substitute continuation) is preferred. There are two variations of this option:
+* Substitute <i>all</i> attention weights (in a given head), i.e., complete overlay the attention induced from x' on x. The complication here is that the two continuations might be of different lengths and structure, so swapping their attention would (a) need to be adjusted to length somehow and (b) might create some noise due to applying the attention induced from differently-structured text. One way to counter this is to choose continuations of similar structure but this likely wouldn't scale.
+* Substitute <i>subset</i> of attention weights (in a given head). This would require some renormalization to make the distributions sum to one, but that would be fairly straightforward. Disadvantage is that this only considers subset of attention as mediator. A few variations:
+    * Substitute attention weights for all token pairs prior to the continuation. This approach is based on the hypothesis that attention preceding continuation is more important for determining gender of pronoun.
+    * Substitute attention weights only for two attention arcs: ("technician", MASK), and ("customer", MASK). This is based on hypothesis that the direct attention between MASK ("he"/"she" position) and occupation words plays a large role in the pronoun prediction.
+    * Substitute attention weights for all arcs, but do so individually, so effect of individual arcs can be observed. One likely outcome is that attention arcs ("technician", MASK) and ("customer", MASK) have the biggest impact (of course depending on head).    
+
+#####Language Generation
+
+x = "The technician told the customer that he"
+
+Y = log odds ratio of continuations “fixed the problem” vs “will receive a call”.
+
+M'(x) = M(x'), where x' = "The technician told the customer that <u>she</u>" (changed gender of pronoun)
+
+###Direct effect
+
+Change x, while keeping M (attention) constant, and measure change in Y.
+
+TBD
 
 ## Other Papers / Resources
 
