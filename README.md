@@ -66,7 +66,7 @@ Change M (attention), while keeping x constant, and measure effect on Y.
 
 One approach is to define M'(x) = M(x'), i.e. assign the attention induced by a different input x'. Some possible implementations of this approach:
 
-##### Masked Language modeling
+#### Masked Language modeling
 
 x = "The technician told the customer that MASK fixed the problem"
 
@@ -84,7 +84,7 @@ The first option (substitute continuation) is preferred. There are two variation
     * Substitute attention weights only for two attention arcs: ("technician", MASK), and ("customer", MASK). This is based on hypothesis that the direct attention between MASK ("he"/"she" position) and occupation words plays a large role in the pronoun prediction.
     * Substitute attention weights for all arcs, but do so individually, so effect of individual arcs can be observed. One likely outcome is that attention arcs ("technician", MASK) and ("customer", MASK) have the biggest impact (of course depending on head).    
 
-##### Language Generation
+#### Language Generation
 
 x = "The technician told the customer that he"
 
