@@ -127,6 +127,13 @@ The first option again might be the most promising. This (along with examining t
 * The pronoun embedding itself is biased towards one of these continuations. (This could be measured by the direct effect: we keep attention the same but only change the pronoun)
 * The attention between the pronoun and the occupation is biased, which causes the pronoun embedding to become infused with one occupation embedding more than another.  (This could be measured by the indirect effect: keep pronoun the same but change the attention.)
 
+### Research questions for attention analysis
+* What role do particular attention heads play in gender bias?
+* What role do particular attention arcs plan in gender bias?
+* What is the role of attention vs. word embeddings in gender bias
+    * Word embeddings themselves can contain gender bias. So embedding for "he" might tend to generate "fixed the problem" vs "will receive a call"
+    * Attention can form relationships between words that lead to gender bias, e.g. associating "he" with "technician", which then leads to continuation "fixed the problem"
+
 ## Other Papers / Resources
 
 * Gender Bias in Contextualized Word Embeddings (https://www.aclweb.org/anthology/N19-1064): Swaps sentence representation during inference with opposite gender
