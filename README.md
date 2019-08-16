@@ -90,13 +90,42 @@ x = "The technician told the customer that he"
 
 Y = log odds ratio of continuations “fixed the problem” vs “will receive a call”.
 
-M'(x) = M(x'), where x' = "The technician told the customer that <u>she</u>" (changed gender of pronoun)
+M'(x) = M(x'), where x' is one of the following:
+ * "The technician told the customer that <u>she</u>" (changed gender of pronoun)
+ * "The <u>customer</u> told the <u>technician</u> that he" (swap occupation words) 
+ * “The <u>woman</u> told the customer that he” (substitute gender-specific word)
+
+The first option seems to be the most useful. Again, there are two variations:
+* Substitute <i>all</i> attention weights (in a given head), i.e., complete overlay the attention induced from x' on x. This should work as is without any renormalization or length adjustment.
+* Substitute <i>subset</i> of attention weights (in a given head). This would require some renormalization to make the distributions sum to one, but that would be fairly straightforward. Disadvantage is that this only considers subset of attention as mediator. A few variations:
+    * Substitute attention weights only for two attention arcs: ("technician", "he"), and ("customer", "he"). This is based on hypothesis that the direct attention between "he"/"she" and occupation words plays a large role in the continuation prediction. 
+    * Substitute attention weights for all arcs, but do so individually, so the effect of individual arcs can be observed. One likely outcome is that attention arcs ("technician", "he") and ("customer", "he") have the biggest impact (of course depending on head).    
 
 ### Direct effect
 
+<i>Needs to be fleshed out more.</i>
+
 Change x, while keeping M (attention) constant, and measure change in Y.
 
-TBD
+#### Masked Language modeling
+
+x = "The technician told the customer that MASK fixed the problem"
+
+x' = one of following:
+
+* "The technician told the customer that MASK <u>will receive a call</u>" (substitute continuation)
+* "The <u>customer</u> told the <u>technician</u> that MASK fixed the problem" (swap occupation words)
+
+#### Language Generation
+
+x' is one of the following:
+ * "The technician told the customer that <u>she</u>" (changed gender of pronoun)
+ * "The <u>customer</u> told the <u>technician</u> that he" (swap occupation words) 
+ * “The <u>woman</u> told the customer that he” (substitute gender-specific word)
+ 
+The first option again might be the most promising. This (along with examining the indirect effect) might help validate two competing hypotheses on what determines the continuation:
+* The pronoun embedding itself is biased towards one of these continuations. (This could be measured by the direct effect: we keep attention the same but only change the pronoun)
+* The attention between the pronoun and the occupation is biased, which causes the pronoun embedding to become infused with one occupation embedding more than another.  (This could be measured by the indirect effect: keep pronoun the same but change the attention.)
 
 ## Other Papers / Resources
 
