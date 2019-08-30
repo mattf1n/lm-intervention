@@ -30,8 +30,10 @@ class Intervention():
                  tokenizer,
                  base_string: str,
                  substitutes: list,
-                 candidates: list):
+                 candidates: list,
+                 device='cpu'):
         super()
+        self.device = device
         self.enc = tokenizer
         # All the initial strings
         # First item should be neutral, others tainted
@@ -53,17 +55,18 @@ class Intervention():
         encoded = self.enc.encode(txt)
         return torch.tensor(encoded, dtype=torch.long)\
                     .unsqueeze(0)\
-                    .repeat(1, 1)
+                    .repeat(1, 1).to(device=self.device)
 
 
 class Model():
     '''
     Wrapper for all model logic
     '''
-    def __init__(self):
+    def __init__(self, device='cpu'):
         super()
         self.model = GPT2LMHeadModel.from_pretrained('gpt2')
         self.model.eval()
+        self.model.to(device)
 
         # Options
         self.top_k = 5
@@ -152,7 +155,18 @@ class Model():
 
         return new_probabilities
 
-    def neuron_intervention_experiment(self, intervention):
+    def neuron_intervention_experiment(self, word2intervention):
+        """
+        run multiple intervention experiments
+        """
+
+        word2intervention_results = {}
+        for word in tqdm(word2intervention, desc='words'):
+            word2intervention_results[word] = self.neuron_intervention_single_experiment(word2intervention[word])
+
+        return word2intervention_results        
+
+    def neuron_intervention_single_experiment(self, intervention):
         """
         run one full neuron intervention experiment
         """
