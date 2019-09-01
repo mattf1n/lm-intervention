@@ -1,13 +1,12 @@
 
 import torch
-import torch.nn as nn
+# import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 # import random
 from functools import partial
 from tqdm import tqdm
 # from tqdm import tqdm_notebook
-import math
 
 from collections import Counter, defaultdict
 
@@ -31,8 +30,10 @@ class Intervention():
                  tokenizer,
                  base_string: str,
                  substitutes: list,
-                 candidates: list):
+                 candidates: list,
+                 device='cpu'):
         super()
+        self.device = device
         self.enc = tokenizer
         # All the initial strings
         # First item should be neutral, others tainted
@@ -54,17 +55,18 @@ class Intervention():
         encoded = self.enc.encode(txt)
         return torch.tensor(encoded, dtype=torch.long)\
                     .unsqueeze(0)\
-                    .repeat(1, 1)
+                    .repeat(1, 1).to(device=self.device)
 
 
 class Model():
     '''
     Wrapper for all model logic
     '''
-    def __init__(self, **kwargs):
+    def __init__(self, device='cpu'):
         super()
-        self.model = GPT2LMHeadModel.from_pretrained('gpt2', **kwargs)
+        self.model = GPT2LMHeadModel.from_pretrained('gpt2')
         self.model.eval()
+        self.model.to(device)
 
         # Options
         self.top_k = 5
@@ -101,7 +103,7 @@ class Model():
         return representation
 
     def get_probabilities_for_examples(self, context, outputs):
-        logits, past = self.model(context)[0:2]
+        logits, past = self.model(context)
         logits = logits[:, -1, :]
         probs = F.softmax(logits, dim=-1)
         return probs[0][outputs]
@@ -153,74 +155,18 @@ class Model():
 
         return new_probabilities
 
-    def attention_intervention(self,
-                               context,
-                               outputs,
-                               layer,
-                               attn_override,
-                               attn_override_mask):
-        """ Override attention values in specified layer
-
-        Args:
-            context: context text
-            layer: layer in which to intervene
-            attn_override: values to override the computed attention weights. Shape is [num_heads, seq_len, seq_len]
-            attn_override_mask: indicates which attention weights to override. Shape is [num_heads, seq_len, seq_len]
+    def neuron_intervention_experiment(self, word2intervention):
+        """
+        run multiple intervention experiments
         """
 
-        def intervention_hook(module, input, outputs):
-            outputs[0] = self.get_attention_output(input[0], module, attn_override, attn_override_mask)
+        word2intervention_results = {}
+        for word in tqdm(word2intervention, desc='words'):
+            word2intervention_results[word] = self.neuron_intervention_single_experiment(word2intervention[word])
 
-        with torch.no_grad():
-            hook = self.model.transformer.h[layer].attn.register_forward_hook(intervention_hook)
-            new_probabilities = self.get_probabilities_for_examples(
-                context,
-                outputs)
-            hook.remove()
-            return new_probabilities
+        return word2intervention_results
 
-    def get_attention_output(self, x, attn_obj, attn_override, attn_override_mask):
-        """Get the output from `Attention` module, but with overridden attention weights. This applies to a single
-            transformer layer.
-
-        Args:
-            x: input text
-            layer: layer to override attention
-            attn_override: values to override the computed attention weights. Shape is [num_heads, seq_len, seq_len]
-            attn_override_mask: indicates which attention values to override. Shape is [num_heads, seq_len, seq_len]
-        """
-
-        # Following code is based on `Attention.forward` from `modeling_gpt2.py`. However:
-        #    - Does not support following arguments to `Attention.forward`: `layer_past`, `head_mask`
-        #    - Does not support `output_attentions` configuration option
-        #    - Assumes in eval mode (e.g. does not apply dropout)
-        x = attn_obj.c_attn(x)
-        query, key, value = x.split(attn_obj.split_size, dim=2)
-        query = attn_obj.split_heads(query)
-        key = attn_obj.split_heads(key, k=True)
-        value = attn_obj.split_heads(value)
-        present = torch.stack((key.transpose(-2, -1), value))  # transpose to have same shapes for stacking
-
-        # Following is based on Attention._attn
-        w = torch.matmul(query, key)
-        if attn_obj.scale:
-            w = w / math.sqrt(value.size(-1))
-        nd, ns = w.size(-2), w.size(-1)
-        b = attn_obj.bias[:, :, ns - nd:ns, :ns]
-        w = w * b - 1e4 * (1 - b)
-        w = nn.Softmax(dim=-1)(w)
-
-        # Override attention weights where mask is 1, else keep original values
-        w = torch.where(attn_override_mask, attn_override, w)
-
-        # Apply attention weights to compute outputs
-        a = torch.matmul(w, value)
-        a = attn_obj.merge_heads(a)
-        a = attn_obj.c_proj(a)
-
-        return a
-
-    def neuron_intervention_experiment(self, intervention):
+    def neuron_intervention_single_experiment(self, intervention):
         """
         run one full neuron intervention experiment
         """
@@ -278,43 +224,6 @@ class Model():
                 layer_to_candidate1_probs,
                 layer_to_candidate2,
                 layer_to_candidate2_probs)
-
-    def attention_intervention_experiment(self, intervention):
-        """
-        Run one full attention intervention experiment measuring indirect effect.
-        """
-        x = intervention.base_strings_tok[0] # E.g. The doctor asked the nurse a question. He
-        x_alt = intervention.base_strings_tok[1] # E.g. The doctor asked the nurse a question. She
-
-        attention_override = self.model(x_alt)[-1] # Get attention for x_alt
-        batch_size = 1
-        seq_len = x.shape[1]
-        seq_len_alt = x_alt.shape[1]
-        assert seq_len == seq_len_alt
-        assert len(attention_override) == self.num_layers
-        assert attention_override[0].shape == (batch_size, self.num_heads, seq_len, seq_len)
-
-        with torch.no_grad():
-            candidate1_base_prob, candidate2_base_prob = self.get_probabilities_for_examples(
-                x,
-                intervention.candidates_tok)
-
-            candidate1_probs = torch.zeros((self.num_layers, self.num_heads))
-            candidate2_probs = torch.zeros((self.num_layers, self.num_heads))
-            # Intervene at every head by overlaying attention induced by x_alt
-            for layer in tqdm(range(self.num_layers)):
-                layer_attention_override = attention_override[layer]
-                for head in tqdm(range(self.num_heads)):
-                    attention_override_mask = torch.zeros_like(layer_attention_override, dtype=torch.uint8)
-                    attention_override_mask[0][head] = 1 # Set mask for head only
-                    candidate1_probs[layer][head], candidate2_probs[layer][head] = self.attention_intervention(
-                        context=x,
-                        outputs=intervention.candidates_tok,
-                        layer=layer,
-                        attn_override=layer_attention_override,
-                        attn_override_mask=attention_override_mask)
-
-        return candidate1_base_prob, candidate2_base_prob, candidate1_probs, candidate2_probs
 
 
 def main():
