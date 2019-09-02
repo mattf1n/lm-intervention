@@ -166,6 +166,7 @@ class Model():
 
         Args:
             context: context text
+            outputs: candidate outputs
             layer: layer in which to intervene
             attn_override: values to override the computed attention weights. Shape is [num_heads, seq_len, seq_len]
             attn_override_mask: indicates which attention weights to override. Shape is [num_heads, seq_len, seq_len]
@@ -184,25 +185,24 @@ class Model():
 
     def get_attention_output(self, x, attn_obj, attn_override, attn_override_mask):
         """Get the output from `Attention` module, but with overridden attention weights. This applies to a single
-            transformer layer.
+        transformer layer.
 
         Args:
             x: input text
-            layer: layer to override attention
+            attn_obj: object of class `Attention`
             attn_override: values to override the computed attention weights. Shape is [num_heads, seq_len, seq_len]
-            attn_override_mask: indicates which attention values to override. Shape is [num_heads, seq_len, seq_len]
+            attn_override_mask: indicates which attention weights to override. Shape is [num_heads, seq_len, seq_len]
         """
 
         # Following code is based on `Attention.forward` from `modeling_gpt2.py`. However:
         #    - Does not support following arguments to `Attention.forward`: `layer_past`, `head_mask`
         #    - Does not support `output_attentions` configuration option
-        #    - Assumes in eval mode (e.g. does not apply dropout)
+        #    - Assumes eval mode (e.g. does not apply dropout)
         x = attn_obj.c_attn(x)
         query, key, value = x.split(attn_obj.split_size, dim=2)
         query = attn_obj.split_heads(query)
         key = attn_obj.split_heads(key, k=True)
         value = attn_obj.split_heads(value)
-        present = torch.stack((key.transpose(-2, -1), value))  # transpose to have same shapes for stacking
 
         # Following is based on Attention._attn
         w = torch.matmul(query, key)
@@ -320,7 +320,7 @@ class Model():
                 layer_attention_override = attention_override[layer]
                 for head in tqdm(range(self.num_heads)):
                     attention_override_mask = torch.zeros_like(layer_attention_override, dtype=torch.uint8)
-                    attention_override_mask[0][head] = 1 # Set mask for head only
+                    attention_override_mask[0][head] = 1 # Set mask to 1 for single head only
                     candidate1_probs[layer][head], candidate2_probs[layer][head] = self.attention_intervention(
                         context=x,
                         outputs=intervention.candidates_tok,
