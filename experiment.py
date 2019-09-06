@@ -77,10 +77,6 @@ class Model():
         # 12 for GPT-2
         self.num_heads = self.model.transformer.h[0].attn.n_head
 
-        # multiplier for intervention; needs to be pretty large (~100) to see a change
-        # TODO: plot the intervention results (how many neurons are flipped) for different alphas
-        self.alpha = 500
-
     def get_representations(self, context, position):
         # Hook for saving the representation
         def extract_representation_hook(module, input, output, position, representations, layer):
@@ -114,12 +110,13 @@ class Model():
                             repr_difference,
                             layer,
                             neuron,
-                            position):
+                            position,
+                            alpha):
         # Hook for changing representation during forward pass
         def intervention_hook(module, input, output, position, neuron, intervention):
             output[0][position][neuron] += intervention
 
-        intervention_rep = self.alpha * repr_difference[layer][neuron]
+        intervention_rep = alpha * repr_difference[layer][neuron]
         mlp_intervention_handle = self.model.transformer.h[layer]\
                                       .mlp.register_forward_hook(
             partial(intervention_hook,
@@ -166,7 +163,7 @@ class Model():
 
         return word2intervention_results        
 
-    def neuron_intervention_single_experiment(self, intervention):
+    def neuron_intervention_single_experiment(self, intervention, alpha=500):
         """
         run one full neuron intervention experiment
         """
@@ -212,7 +209,8 @@ class Model():
                         repr_difference=representation_difference,
                         layer=layer,
                         neuron=neuron,
-                        position=intervention.position)
+                        position=intervention.position,
+                        alpha=alpha)
 
                     layer_to_candidate1_probs[layer].append(candidate1_prob)
                     layer_to_candidate2_probs[layer].append(candidate2_prob)
