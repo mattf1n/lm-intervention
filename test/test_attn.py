@@ -1,4 +1,6 @@
 import unittest
+
+from gpt2_attention import AttentionOverride
 from experiment import Model
 import torch
 from pytorch_transformers import GPT2Tokenizer, GPT2LMHeadModel
@@ -30,10 +32,11 @@ class AttnTest(unittest.TestCase):
         attn_override = attn.clone()
         attn_override_mask = torch.ones_like(attn_override, dtype=torch.uint8)
 
-        def update_output(module, input, outputs):
-            outputs[0] = self.model.get_attention_output(input[0], module, attn_override, attn_override_mask)
+        def intervention_hook(module, input, outputs):
+            attention_override_module = AttentionOverride(module, attn_override, attn_override_mask)
+            outputs[:] = attention_override_module(*input)
 
-        hook = self.model.model.transformer.h[layer].attn.register_forward_hook(update_output)
+        hook = self.model.model.transformer.h[layer].attn.register_forward_hook(intervention_hook)
         with torch.no_grad():
             lm_logits2 = self.model.model(x)[0]
         hook.remove()
@@ -46,7 +49,7 @@ class AttnTest(unittest.TestCase):
         attn_override_mask = torch.zeros_like(attn_override, dtype=torch.uint8)
         attn_override_mask[0][head] = torch.ones((seq_len, seq_len), dtype=torch.uint8)
 
-        hook = self.model.model.transformer.h[layer].attn.register_forward_hook(update_output)
+        hook = self.model.model.transformer.h[layer].attn.register_forward_hook(intervention_hook)
         with torch.no_grad():
             lm_logits3 = self.model.model(x)[0]
         hook.remove()
