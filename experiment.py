@@ -16,6 +16,7 @@ from collections import Counter, defaultdict
 # import matplotlib.pyplot as plt
 
 from pytorch_transformers import GPT2LMHeadModel, GPT2Tokenizer
+from gpt2_attention import AttentionOverride
 
 # sns.set(style="ticks", color_codes=True)
 
@@ -173,7 +174,8 @@ class Model():
         """
 
         def intervention_hook(module, input, outputs):
-            outputs[0] = self.get_attention_output(input[0], module, attn_override, attn_override_mask)
+            attention_override_module = AttentionOverride(module, attn_override, attn_override_mask)
+            outputs[:] = attention_override_module(*input)
 
         with torch.no_grad():
             hook = self.model.transformer.h[layer].attn.register_forward_hook(intervention_hook)
@@ -182,46 +184,6 @@ class Model():
                 outputs)
             hook.remove()
             return new_probabilities
-
-    def get_attention_output(self, x, attn_obj, attn_override, attn_override_mask):
-        """Get the output from `Attention` module, but with overridden attention weights. This applies to a single
-        transformer layer.
-
-        Args:
-            x: input text
-            attn_obj: object of class `Attention`
-            attn_override: values to override the computed attention weights. Shape is [num_heads, seq_len, seq_len]
-            attn_override_mask: indicates which attention weights to override. Shape is [num_heads, seq_len, seq_len]
-        """
-
-        # Following code is based on `Attention.forward` from `modeling_gpt2.py`. However:
-        #    - Does not support following arguments to `Attention.forward`: `layer_past`, `head_mask`
-        #    - Does not support `output_attentions` configuration option
-        #    - Assumes eval mode (e.g. does not apply dropout)
-        x = attn_obj.c_attn(x)
-        query, key, value = x.split(attn_obj.split_size, dim=2)
-        query = attn_obj.split_heads(query)
-        key = attn_obj.split_heads(key, k=True)
-        value = attn_obj.split_heads(value)
-
-        # Following is based on Attention._attn
-        w = torch.matmul(query, key)
-        if attn_obj.scale:
-            w = w / math.sqrt(value.size(-1))
-        nd, ns = w.size(-2), w.size(-1)
-        b = attn_obj.bias[:, :, ns - nd:ns, :ns]
-        w = w * b - 1e4 * (1 - b)
-        w = nn.Softmax(dim=-1)(w)
-
-        # Override attention weights where mask is 1, else keep original values
-        w = torch.where(attn_override_mask, attn_override, w)
-
-        # Apply attention weights to compute outputs
-        a = torch.matmul(w, value)
-        a = attn_obj.merge_heads(a)
-        a = attn_obj.c_proj(a)
-
-        return a
 
     def neuron_intervention_experiment(self, word2intervention):
         """
