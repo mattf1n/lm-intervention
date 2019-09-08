@@ -12,7 +12,7 @@ class AttnTest(unittest.TestCase):
         self.model = Model(output_attentions=True)
         self.tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
 
-    def test_recompute_attention_outputs(self):
+    def test_attention_override(self):
 
         # TEST 1: Overlay attention from same input and verify that output doesn't change
 
@@ -47,7 +47,7 @@ class AttnTest(unittest.TestCase):
         head = 5
         attn_override = torch.zeros(1, self.model.num_heads, seq_len, seq_len)
         attn_override_mask = torch.zeros_like(attn_override, dtype=torch.uint8)
-        attn_override_mask[0][head] = torch.ones((seq_len, seq_len), dtype=torch.uint8)
+        attn_override_mask[0][head] = 1
 
         hook = self.model.model.transformer.h[layer].attn.register_forward_hook(intervention_hook)
         with torch.no_grad():
