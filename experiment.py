@@ -231,7 +231,7 @@ class Model():
             '''
             Intervene at every possible neuron
             '''
-            for layer in tqdm(range(self.num_layers)):
+            for layer in range(self.num_layers):
                 for neuron in range(self.num_neurons):
                     candidate1_prob, candidate2_prob = self.neuron_intervention(
                         context=context,
@@ -253,14 +253,20 @@ class Model():
                 layer_to_candidate2,
                 layer_to_candidate2_probs)
 
-    def attention_intervention_experiment(self, intervention):
+    def attention_intervention_experiment(self, intervention, effect):
         """
-        Run one full attention intervention experiment measuring indirect effect.
+        Run one full attention intervention experiment measuring indirect or direct effect.
         """
         x = intervention.base_strings_tok[0] # E.g. The doctor asked the nurse a question. He
         x_alt = intervention.base_strings_tok[1] # E.g. The doctor asked the nurse a question. She
 
-        attention_override = self.model(x_alt)[-1] # Get attention for x_alt
+        if effect == 'indirect':
+            attention_override = self.model(x_alt)[-1] # Get attention for x_alt
+        elif effect == 'direct':
+            attention_override = self.model(x)[-1] # Get attention for x
+        else:
+            raise ValueError(f"Invalid effect: {effect}")
+
         batch_size = 1
         seq_len = x.shape[1]
         seq_len_alt = x_alt.shape[1]
@@ -284,8 +290,12 @@ class Model():
                 for head in range(self.num_heads):
                     attention_override_mask = torch.zeros_like(layer_attention_override, dtype=torch.uint8)
                     attention_override_mask[0][head] = 1 # Set mask to 1 for single head only
+                    if effect == 'indirect':
+                        context = x
+                    else:
+                        context = x_alt
                     candidate1_probs[layer][head], candidate2_probs[layer][head] = self.attention_intervention(
-                        context=x,
+                        context=context,
                         outputs=intervention.candidates_tok,
                         layer=layer,
                         attn_override=layer_attention_override,
