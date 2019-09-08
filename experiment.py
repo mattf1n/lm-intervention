@@ -272,13 +272,16 @@ class Model():
             candidate1_base_prob, candidate2_base_prob = self.get_probabilities_for_examples(
                 x,
                 intervention.candidates_tok)
+            candidate1_alt_prob, candidate2_alt_prob = self.get_probabilities_for_examples(
+                x_alt,
+                intervention.candidates_tok)
 
             candidate1_probs = torch.zeros((self.num_layers, self.num_heads))
             candidate2_probs = torch.zeros((self.num_layers, self.num_heads))
             # Intervene at every head by overlaying attention induced by x_alt
             for layer in tqdm(range(self.num_layers)):
                 layer_attention_override = attention_override[layer]
-                for head in tqdm(range(self.num_heads)):
+                for head in range(self.num_heads):
                     attention_override_mask = torch.zeros_like(layer_attention_override, dtype=torch.uint8)
                     attention_override_mask[0][head] = 1 # Set mask to 1 for single head only
                     candidate1_probs[layer][head], candidate2_probs[layer][head] = self.attention_intervention(
@@ -288,7 +291,7 @@ class Model():
                         attn_override=layer_attention_override,
                         attn_override_mask=attention_override_mask)
 
-        return candidate1_base_prob, candidate2_base_prob, candidate1_probs, candidate2_probs
+        return candidate1_base_prob, candidate2_base_prob, candidate1_alt_prob, candidate2_alt_prob, candidate1_probs, candidate2_probs
 
 def main():
     tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
