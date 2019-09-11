@@ -13,19 +13,34 @@ def convert_results_to_pd(interventions, intervention_results):
     results = []
     for word in intervention_results:
         intervention = interventions[word]
-        _, c1_probs, _, c2_probs = intervention_results[word] 
-        for c1_neurons, c2_neurons in zip(c1_probs.items(), c2_probs.items()):
-            cur_layer = c1_neurons[0]
-            first_probs = c1_neurons[1]
-            second_probs = c2_neurons[1]
-            for ix, (p1, p2) in enumerate(zip(first_probs, second_probs)):
+        candidate1_base_prob, candidate2_base_prob,\
+        candidate1_alt1_prob, candidate2_alt1_prob,\
+        candidate1_alt2_prob, candidate2_alt2_prob,\
+        candidate1_probs, candidate2_probs = intervention_results[word] 
+        for layer in range(candidate1_probs.size(0)):
+            for neuron in range(candidate1_probs.size(1)):
+                c1_prob, c2_prob = candidate1_probs[layer][neuron], candidate2_probs[layer][neuron]
                 results.append({
-                     'word': word,
-                     'base_string': intervention.base_strings[0],
-                     'first_condition': intervention.candidates[0],
-                     'second_condition': intervention.candidates[1],
-                     'p1': float(p1),
-                     'p2': float(p2),
-                     'layer': cur_layer,
-                     'neuron': ix})
+
+                    # strings
+                    'word': word,
+                    'base_string': intervention.base_strings[0],
+                    'alt_string1': intervention.base_strings[1],
+                    'alt_string2': intervention.base_strings[2],
+                    'candidate1': intervention.candidates[0],
+                    'candidate2': intervention.candidates[1],
+                     
+                    # base probs
+                    'candidate1_base_prob': float(candidate1_base_prob),
+                    'candidate2_base_prob': float(candidate2_base_prob),
+                    'candidate1_alt1_prob': float(candidate1_alt1_prob),
+                    'candidate2_alt1_prob': float(candidate1_alt1_prob),
+                    'candidate1_alt2_prob': float(candidate1_alt1_prob),
+                    'candidate2_alt2_prob': float(candidate1_alt1_prob),
+
+                    # intervention probs
+                    'candidate1_prob': float(c1_prob),
+                    'candidate2_prob': float(c2_prob),
+                    'layer': layer,
+                    'neuron': neuron})
     return pd.DataFrame(results)
