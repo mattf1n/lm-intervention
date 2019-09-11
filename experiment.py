@@ -109,22 +109,29 @@ class Model():
     def neuron_intervention(self,
                             context,
                             outputs,
-                            repr_difference,
+                            rep,
                             layer,
                             neuron,
                             position,
-                            alpha):
+                            intervention_type='diff',
+                            alpha=1.):
         # Hook for changing representation during forward pass
-        def intervention_hook(module, input, output, position, neuron, intervention):
-            output[0][position][neuron] += intervention
+        def intervention_hook(module, input, output, position, neuron, intervention, intervention_type):
+            if intervention_type == 'replace':
+                output[0][position][neuron] = intervention
+            elif intervention_type == 'diff':
+                output[0][position][neuron] += intervention
+            else:
+                raise ValueError(f"Invalid intervention_type: {intervention_type}")                
 
-        intervention_rep = alpha * repr_difference[layer][neuron]
+        intervention_rep = alpha * rep[layer][neuron]
         mlp_intervention_handle = self.model.transformer.h[layer]\
                                       .mlp.register_forward_hook(
             partial(intervention_hook,
                     position=position,
                     neuron=neuron,
-                    intervention=intervention_rep))
+                    intervention=intervention_rep,
+                    intervention_type=intervention_type))
         new_probabilities = self.get_probabilities_for_examples(
             context,
             outputs)
@@ -182,18 +189,18 @@ class Model():
             hook.remove()
             return new_probabilities
 
-    def neuron_intervention_experiment(self, word2intervention):
+    def neuron_intervention_experiment(self, word2intervention, intervention_type, alpha):
         """
         run multiple intervention experiments
         """
 
         word2intervention_results = {}
         for word in tqdm(word2intervention, desc='words'):
-            word2intervention_results[word] = self.neuron_intervention_single_experiment(word2intervention[word])
+            word2intervention_results[word] = self.neuron_intervention_single_experiment(word2intervention[word], intervention_type, alpha)
 
         return word2intervention_results
 
-    def neuron_intervention_single_experiment(self, intervention, alpha=500):
+    def neuron_intervention_single_experiment(self, intervention, intervention_type, alpha=1):
         """
         run one full neuron intervention experiment
         """
@@ -206,52 +213,78 @@ class Model():
             '''
             Compute representations for base terms (one for each side of bias)
             '''
+            base_representations = self.get_representations(
+                intervention.base_strings_tok[0],
+                intervention.position)
             man_representations = self.get_representations(
                 intervention.base_strings_tok[1],
                 intervention.position)
             woman_representations = self.get_representations(
                 intervention.base_strings_tok[2],
                 intervention.position)
-            representation_difference = {k: v - woman_representations[k]
-                                         for k, v in man_representations.items()}
-            '''
-            Now intervening on potentially biased example
-            '''
-            context = intervention.base_strings_tok[0]
-            '''
-            Probabilities without intervention (Base case)
-            '''
-            base_probs = self.get_probabilities_for_examples(
-                context,
-                intervention.candidates_tok)
-            print("Base case: {} ____".format(intervention.base_strings[0]))
-            for token, prob in zip(intervention.candidates, base_probs):
-                print("{}: {:.2f}%".format(token, prob*100))
 
-            '''
-            Intervene at every possible neuron
-            '''
+            # TODO: this whole logic can probably be improved 
+            # determine effect type and set representations
+            if intervention_type == 'man_minus_woman':
+                context = intervention.base_strings_tok[0] # e.g. The teacher said that
+                rep = {k: v - woman_representations[k] for k, v in man_representations.items()}
+                replace_or_diff = 'diff'
+            elif intervention_type == 'woman_minus_man':
+                context = intervention.base_strings_tok[0] # e.g. The teacher said that
+                rep = {k: v - man_representations[k] for k, v in woman_representations.items()}
+                replace_or_diff = 'diff'
+            elif intervention_type == 'man_direct':
+                context = intervention.base_strings_tok[1] # e.g. The man said that 
+                rep = base_representations
+                replace_or_diff = 'replace'
+            elif intervention_type == 'man_indirect':
+                context = intervention.base_strings_tok[0] # e.g. The teacher said that
+                rep = man_representations
+                replace_or_diff = 'replace'
+            elif intervention_type == 'woman_direct':
+                context = intervention.base_strings_tok[2] # e.g. The woman said that 
+                rep = base_representations
+                replace_or_diff = 'replace'
+            elif intervention_type == 'woman_indirect':
+                context = intervention.base_strings_tok[0] # e.g. The teacher said that
+                rep = woman_representations
+                replace_or_diff = 'replace'
+            else:
+                raise ValueError(f"Invalid intervention_type: {intervention_type}")  
+            
+
+            # Probabilities without intervention (Base case)
+            candidate1_base_prob, candidate2_base_prob = self.get_probabilities_for_examples(
+                intervention.base_strings_tok[0],
+                intervention.candidates_tok)
+            candidate1_alt1_prob, candidate2_alt1_prob = self.get_probabilities_for_examples(
+                intervention.base_strings_tok[1],
+                intervention.candidates_tok)
+            candidate1_alt2_prob, candidate2_alt2_prob = self.get_probabilities_for_examples(
+                intervention.base_strings_tok[2],
+                intervention.candidates_tok)
+
+            # Now intervening on potentially biased example
+
+            candidate1_probs = torch.zeros((self.num_layers, self.num_neurons))
+            candidate2_probs = torch.zeros((self.num_layers, self.num_neurons))
+            # Intervene at every possible neuron
             for layer in range(self.num_layers):
                 for neuron in range(self.num_neurons):
-                    candidate1_prob, candidate2_prob = self.neuron_intervention(
+                    candidate1_probs[layer][neuron], candidate2_probs[layer][neuron] = self.neuron_intervention(
                         context=context,
                         outputs=intervention.candidates_tok,
-                        repr_difference=representation_difference,
+                        rep=rep,
                         layer=layer,
                         neuron=neuron,
                         position=intervention.position,
+                        intervention_type=replace_or_diff,
                         alpha=alpha)
 
-                    layer_to_candidate1_probs[layer].append(candidate1_prob)
-                    layer_to_candidate2_probs[layer].append(candidate2_prob)
-                    if candidate1_prob > candidate2_prob:
-                        layer_to_candidate1[layer] += 1
-                    else:
-                        layer_to_candidate2[layer] += 1
-        return (layer_to_candidate1,
-                layer_to_candidate1_probs,
-                layer_to_candidate2,
-                layer_to_candidate2_probs)
+        return (candidate1_base_prob, candidate2_base_prob, 
+                candidate1_alt1_prob, candidate2_alt1_prob, 
+                candidate1_alt2_prob, candidate2_alt2_prob, 
+                candidate1_probs, candidate2_probs)
 
     def attention_intervention_experiment(self, intervention, effect):
         """
