@@ -3,6 +3,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 sns.set(style="ticks", color_codes=True)
 from tqdm import tqdm_notebook
+import sys
 
 from pytorch_transformers import GPT2Tokenizer
 
@@ -77,14 +78,24 @@ with open('female_word_said.txt', 'r') as f:
                     ["he", "she"]))
 
 
-# ## Multiple Professions Experiment Run
+# Multiple Professions Experiment Run
+def run(intervention_type, output_csv_file, alpha):
+    print(f"intervention_type: {intervention_type}")
+    print(f"output_csv_file: {output_csv_file}")
+    print(f"alpha: {alpha}")
+
+    intervention_results = model.neuron_intervention_experiment(interventions, intervention_type, alpha)
+
+    df = convert_results_to_pd(interventions, intervention_results)
+    df.head()
+    df.to_csv(output_csv_file)
 
 
-intervention_results = model.neuron_intervention_experiment(interventions)
 
-df = convert_results_to_pd(interventions, intervention_results)
-df.head()
-df.to_csv("lm_intervention_professions_results_alpha1.pkl")
-
+if __name__ == '__main__':
+    if len(sys.argv) == 4:
+        run(sys.argv[1], sys.argv[2], float(sys.argv[3]))
+    else:
+        print("python", sys.argv[0], "<intervention_type", "<output_csv_file>", "<alpha>")
 
 
