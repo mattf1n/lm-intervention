@@ -106,7 +106,6 @@ class Model():
 
         Returns: list containing probability for each candidate (normalized by length of candidate)
         """
-        # TODO: Combine into single batch
 
         max_len = max(len(c) for c in candidates)
         if max_len == 1:
@@ -117,6 +116,7 @@ class Model():
             probs = F.softmax(logits, dim=-1)
             return probs[0][outputs].tolist()
         else:
+            # TODO: Combine into single batch
             mean_probs = []
             for candidate in candidates:
                 combined = context + candidate
