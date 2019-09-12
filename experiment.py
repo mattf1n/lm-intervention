@@ -8,6 +8,7 @@ from functools import partial
 from tqdm import tqdm
 # from tqdm import tqdm_notebook
 import math
+import statistics
 
 from collections import Counter, defaultdict
 
@@ -42,22 +43,17 @@ class Intervention():
         self.base_strings = [base_string.format(s)
                              for s in substitutes]
         # Tokenized bases
-        self.base_strings_tok = [self._to_batch(s)
+        self.base_strings_tok = [self.enc.encode(s)
                                  for s in self.base_strings]
         # Where to intervene
         self.position = base_string.split().index('{}')
 
-        # How to extend the string
-        self.candidates = ['Ġ' + c for c in candidates]
-        # tokenized candidates
-        self.candidates_tok = [self.enc.convert_tokens_to_ids(c)
-                               for c in self.candidates]
+        self.candidates = []
+        for c in candidates:
+            tokens = self.enc.tokenize('. ' + c)[1:] # '. ' added to input so that tokenizer understand that first word follows a space.
+            self.candidates.append(tokens)
 
-    def _to_batch(self, txt):
-        encoded = self.enc.encode(txt)
-        return torch.tensor(encoded, dtype=torch.long)\
-                    .unsqueeze(0)\
-                    .repeat(1, 1).to(device=self.device)
+        self.candidates_tok = [self.enc.convert_tokens_to_ids(tokens) for tokens in self.candidates]
 
 
 class Model():
@@ -100,11 +96,35 @@ class Model():
         # print(representation[0][:5])
         return representation
 
-    def get_probabilities_for_examples(self, context, outputs):
-        logits, past = self.model(context)[:2]
-        logits = logits[:, -1, :]
-        probs = F.softmax(logits, dim=-1)
-        return probs[0][outputs]
+    def get_probabilities_for_examples(self, context, candidates):
+        """
+        Return probability of candidates given context. Prob of each candidate is normalized by length of candidate.
+
+        Args:
+            context: list of token ids in context
+            candidates: list of list of token ids in each candidate
+
+        Returns: list containing probability for each candidate (normalized by length of candidate)
+        """
+        # TODO: Combine into single batch
+        mean_probs = []
+        for candidate in candidates:
+            combined = context + candidate
+            batch = torch.tensor(combined).unsqueeze(dim=0)
+            logits = self.model(batch)[0] # Shape (batch_size, seq_len, vocab_size)
+            log_probs = F.log_softmax(logits[-1, :, :], dim=-1) # Shape (seq_len, vocab_size)
+            context_end_pos = len(context) - 1
+            continuation_end_pos = context_end_pos + len(candidate)
+            token_log_probs = []
+            # TODO: Vectorize this
+            for i in range(context_end_pos, continuation_end_pos): # Up to but not including last token position
+                next_token_id = combined[i+1]
+                next_token_log_prob = log_probs[i][next_token_id].item()
+                token_log_probs.append(next_token_log_prob)
+            mean_token_log_prob = statistics.mean(token_log_probs)
+            mean_token_prob = math.exp(mean_token_log_prob)
+            mean_probs.append(mean_token_prob)
+        return mean_probs
 
     def neuron_intervention(self,
                             context,
@@ -173,8 +193,8 @@ class Model():
             context: context text
             outputs: candidate outputs
             layer: layer in which to intervene
-            attn_override: values to override the computed attention weights. Shape is [num_heads, seq_len, seq_len]
-            attn_override_mask: indicates which attention weights to override. Shape is [num_heads, seq_len, seq_len]
+            attn_override: values to override the computed attention weights. Shape is [batch_size, num_heads, seq_len, seq_len]
+            attn_override_mask: indicates which attention weights to override. Shape is [batch_size, num_heads, seq_len, seq_len]
         """
 
         def intervention_hook(module, input, outputs):
@@ -294,15 +314,16 @@ class Model():
         x_alt = intervention.base_strings_tok[1] # E.g. The doctor asked the nurse a question. She
 
         if effect == 'indirect':
-            attention_override = self.model(x_alt)[-1] # Get attention for x_alt
+            input = x_alt  # Get attention for x_alt
         elif effect == 'direct':
-            attention_override = self.model(x)[-1] # Get attention for x
+            input = x  # Get attention for x
         else:
             raise ValueError(f"Invalid effect: {effect}")
+        attention_override = self.model(self._tok_to_batch(input))[-1]
 
         batch_size = 1
-        seq_len = x.shape[1]
-        seq_len_alt = x_alt.shape[1]
+        seq_len = len(x)
+        seq_len_alt = len(x_alt)
         assert seq_len == seq_len_alt
         assert len(attention_override) == self.num_layers
         assert attention_override[0].shape == (batch_size, self.num_heads, seq_len, seq_len)
@@ -335,6 +356,9 @@ class Model():
                         attn_override_mask=attention_override_mask)
 
         return candidate1_base_prob, candidate2_base_prob, candidate1_alt_prob, candidate2_alt_prob, candidate1_probs, candidate2_probs
+
+    def _tok_to_batch(self, tok_ids):
+        return torch.tensor(tok_ids).unsqueeze(0)
 
 def main():
     tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
