@@ -43,7 +43,11 @@ class AttentionOverride(nn.Module):
         if head_mask is not None:
             w = w * head_mask
 
-        w = torch.where(self.attn_override_mask, self.attn_override, w)
+        # attn_override and attn_override_mask are of shape (batch_size, num_heads, override_seq_len, override_seq_len)
+        # where override_seq_len is the length of subsequence for which attention is being overridden
+        override_seq_len = self.attn_override_mask.shape[-1]
+        w[:, :, :override_seq_len, :override_seq_len] = torch.where(self.attn_override_mask, self.attn_override,
+                                                                    w[:, :, :override_seq_len, :override_seq_len])
 
         outputs = [torch.matmul(w, v)]
         if self.output_attentions:

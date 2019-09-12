@@ -62,6 +62,38 @@ class AttnTest(unittest.TestCase):
         lm_logits4 = prune_model(x)[0]
         self.assertTrue(torch.allclose(lm_logits3, lm_logits4))
 
+        # TEST 4: Override attention for subsequence
+
+        attn_text = 'The doctor said that she' # Text from which attention override will be generated
+        outputs = self.model.model(self._to_batch(attn_text))
+        layer = 2
+        attn_override = outputs[-1][layer]
+        attn_override_mask = torch.ones_like(attn_override, dtype=torch.uint8)
+
+        def intervention_hook2(module, input, outputs):
+            attention_override_module = AttentionOverride(module, attn_override, attn_override_mask)
+            outputs[:] = attention_override_module(*input)
+
+        # Override attention from subsequence of same sequence and verify that output is the same
+        text = 'The doctor said that she went to the store'
+        outputs = self.model.model(self._to_batch(text))
+        lm_logits2 = outputs[0]
+        hook = self.model.model.transformer.h[layer].attn.register_forward_hook(intervention_hook2)
+        with torch.no_grad():
+            outputs = self.model.model(self._to_batch(text))
+            lm_logits3 = outputs[0]
+        hook.remove()
+        self.assertTrue(torch.allclose(lm_logits2, lm_logits3))
+
+        # Override attention from different subsequence and verify that output changes
+        for text2 in ['The doctor said that he went to the store', 'That doctor said that she went to the store']:
+            hook = self.model.model.transformer.h[layer].attn.register_forward_hook(intervention_hook2)
+            with torch.no_grad():
+                outputs = self.model.model(self._to_batch(text2))
+                lm_logits4 = outputs[0]
+            hook.remove()
+            self.assertFalse(torch.allclose(lm_logits2, lm_logits4))
+
     def _to_batch(self, text):
         encoded = self.tokenizer.encode(text)
         return torch.tensor(encoded, dtype=torch.long).unsqueeze(0)
