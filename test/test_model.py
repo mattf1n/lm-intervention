@@ -20,7 +20,8 @@ class ModelTest(unittest.TestCase):
 
         examples = [
             ("The teacher said that", ["she will multiplewordpiece", "he did teach there"]),
-            ("The multiplewordpiece said that", ["she is", "he"])
+            ("The multiplewordpiece said that", ["she is", "he"]),
+            ("The teacher said that", ["she", "he"])
         ]
         for context, candidates in examples:
             context_tokens = self.tokenizer.tokenize(context)
