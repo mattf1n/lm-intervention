@@ -3,6 +3,50 @@ import csv
 import inspect
 import re
 
+# Stats from https://arxiv.org/pdf/1804.06876.pdf, Table 1
+OCCUPATION_FEMALE_PCT = {
+    'carpenter': 2,
+    'mechanic': 4,
+    'construction worker': 4,
+    'laborer': 4,
+    'driver': 6,
+    'sheriff': 14,
+    'mover': 18,
+    'developer': 20,
+    'farmer': 22,
+    'guard': 22,
+    'chief': 27,
+    'janitor': 34,
+    'lawyer': 35,
+    'cook': 38,
+    'physician': 38,
+    'ceo': 39,
+    'analyst': 41,
+    'manager': 43,
+    'supervisor': 44,
+    'salesperson': 48,
+    'editor': 52,
+    'designer': 54,
+    'accountant': 61,
+    'auditor': 61,
+    'writer': 63,
+    'baker': 65,
+    'clerk': 72,
+    'cashier': 73,
+    'counselor': 73,
+    'attendant': 76,
+    'teacher': 78,
+    'tailor': 80,
+    'librarian': 84,
+    'assistant': 85,
+    'cleaner': 89,
+    'housekeeper': 89,
+    'nurse': 90,
+    'receptionist': 90,
+    'hairdresser': 92,
+    'secretary': 95
+}
+
 
 def load_dev_examples(path='winobias_data/'):
     return load_examples(path, 'dev')
@@ -11,9 +55,9 @@ def load_dev_examples(path='winobias_data/'):
 def load_examples(path, split):
     print(f'Split: {split.upper()}')
     with open(os.path.join(path, 'female_occupations.txt')) as f:
-        female_occupations = [row.strip() for row in f]
+        female_occupations = [row.lower().strip() for row in f]
     with open(os.path.join(path, 'male_occupations.txt')) as f:
-        male_occupations = [row.strip() for row in f]
+        male_occupations = [row.lower().strip() for row in f]
     occupations = female_occupations + male_occupations
 
     with open(os.path.join(path, f'pro_stereotyped_type1.txt.{split}')) as f:
@@ -70,7 +114,7 @@ def _parse_row(row, occupations):
     for occ in occupations:
         if f'[the {occ.lower()}]' in sentence.lower():
             assert occupation is None
-            occupation = occ
+            occupation = occ.lower()
     assert occupation is not None
 
     pronoun_groups = [ # First element is female, second is male
