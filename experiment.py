@@ -148,9 +148,9 @@ class Model():
         # Hook for changing representation during forward pass
         def intervention_hook(module, input, output, position, neuron, intervention, intervention_type):
             if intervention_type == 'replace':
-                output[0][position][neuron] = intervention
+                output[0, position, neuron] = intervention
             elif intervention_type == 'diff':
-                output[0][position][neuron] += intervention
+                output[0, position, neuron] += intervention
             else:
                 raise ValueError(f"Invalid intervention_type: {intervention_type}")                
 
@@ -234,10 +234,6 @@ class Model():
         """
         run one full neuron intervention experiment
         """
-
-        # Bookkeeping
-        layer_to_candidate1, layer_to_candidate2 = Counter(), Counter()
-        layer_to_candidate1_probs, layer_to_candidate2_probs = defaultdict(list), defaultdict(list)
 
         with torch.no_grad():
             '''
