@@ -1,7 +1,10 @@
 import os
-import csv
 import inspect
 import re
+from tqdm import tqdm
+from pytorch_transformers import GPT2Tokenizer
+from experiment import Model, Intervention
+import pandas as pd
 
 # Stats from https://arxiv.org/pdf/1804.06876.pdf, Table 1
 OCCUPATION_FEMALE_PCT = {
@@ -48,19 +51,23 @@ OCCUPATION_FEMALE_PCT = {
 }
 
 
-def load_dev_examples(path='winobias_data/'):
-    return load_examples(path, 'dev')
+def load_dev_examples(path='winobias_data/', filtered=False):
+    return load_examples(path, 'dev', filtered)
 
-
-def load_examples(path, split):
-    print(f'Split: {split.upper()}')
+def load_examples(path, split, filtered=False):
+    print(f'Split: {split.upper()}, Filtered: {filtered}')
     with open(os.path.join(path, 'female_occupations.txt')) as f:
         female_occupations = [row.lower().strip() for row in f]
     with open(os.path.join(path, 'male_occupations.txt')) as f:
         male_occupations = [row.lower().strip() for row in f]
     occupations = female_occupations + male_occupations
 
-    with open(os.path.join(path, f'pro_stereotyped_type1.txt.{split}')) as f:
+    if filtered:
+        fname = f'pro_stereotyped_type1.txt.{split}.filtered'
+    else:
+        fname = f'pro_stereotyped_type1.txt.{split}'
+
+    with open(os.path.join(path, fname)) as f:
         examples = []
         row_pair = []
         skip_count = 0
@@ -141,6 +148,59 @@ def _parse_row(row, occupations):
     base_string = context + ' {}'
 
     return base_string, substitutes, continuation, occupation
+
+
+def analyze(examples):
+    tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+
+    model = Model()
+    data = []
+    for ex in tqdm(examples):
+        candidates = [ex.female_occupation_continuation, ex.male_occupation_continuation]
+        substitutes = [ex.female_pronoun, ex.male_pronoun]
+        intervention = Intervention(tokenizer, ex.base_string, substitutes, candidates)
+        prob_female_occupation_continuation_given_female_pronoun, prob_male_occupation_continuation_given_female_pronoun = \
+            model.get_probabilities_for_examples(intervention.base_strings_tok[0], intervention.candidates_tok)
+        prob_female_occupation_continuation_given_male_pronoun, prob_male_occupation_continuation_given_male_pronoun = \
+            model.get_probabilities_for_examples(intervention.base_strings_tok[1], intervention.candidates_tok)
+
+        odds_given_female_pronoun = prob_female_occupation_continuation_given_female_pronoun / \
+                                    prob_male_occupation_continuation_given_female_pronoun
+        odds_given_male_pronoun = prob_female_occupation_continuation_given_male_pronoun / \
+                                  prob_male_occupation_continuation_given_male_pronoun
+        odds_ratio = odds_given_female_pronoun / odds_given_male_pronoun
+
+        desc = f'{ex.base_string.replace("{}", ex.female_pronoun + "/" + ex.male_pronoun)} // {ex.female_occupation_continuation} // {ex.male_occupation_continuation}'
+
+        do_print = False
+        if do_print:
+            print()
+            print(desc)
+            print(
+                f"p(female occupation continuation | female pronoun) = {prob_female_occupation_continuation_given_female_pronoun:.3f}")
+            print(
+                f"p(male occupation continuation | female pronoun) = {prob_male_occupation_continuation_given_female_pronoun:.3f}")
+            print(
+                f"Odds female: p(female occupation continuation | female pronoun) / p(male occupation continuation | female pronoun) = {odds_given_female_pronoun}")
+
+            print(
+                f"p(female occupation continuation | male pronoun) = {prob_female_occupation_continuation_given_male_pronoun:.3f}")
+            print(
+                f"p(male occupation continuation | male pronoun) = {prob_male_occupation_continuation_given_male_pronoun:.3f}")
+            print(
+                f"Odds male: p(female occupation continuation | male pronoun) / p(male occupation continuation | male pronoun) = {odds_given_male_pronoun}")
+
+            print(f"Odds ratio: odds_female / odds_male = {odds_ratio: .3f}")
+
+        female_occupation_female_pct = OCCUPATION_FEMALE_PCT[ex.female_occupation]
+        male_occupation_female_pct = OCCUPATION_FEMALE_PCT[ex.male_occupation]
+
+        data.append({'odds_ratio': odds_ratio,
+                     'female_occupation': ex.female_occupation,
+                     'male_occupation': ex.male_occupation,
+                     'desc': desc,
+                     'occupation_pct_ratio': female_occupation_female_pct / male_occupation_female_pct})
+    return pd.DataFrame(data)
 
 
 class WinobiasExample():
