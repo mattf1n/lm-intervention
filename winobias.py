@@ -51,10 +51,10 @@ OCCUPATION_FEMALE_PCT = {
 }
 
 
-def load_dev_examples(path='winobias_data/', filtered=False):
-    return load_examples(path, 'dev', filtered)
+def load_dev_examples(path='winobias_data/', filtered=False, verbose=False):
+    return load_examples(path, 'dev', filtered, verbose)
 
-def load_examples(path, split, filtered=False):
+def load_examples(path, split, filtered=False, verbose=False):
     print(f'Split: {split.upper()}, Filtered: {filtered}')
     with open(os.path.join(path, 'female_occupations.txt')) as f:
         female_occupations = [row.lower().strip() for row in f]
@@ -85,7 +85,8 @@ def load_examples(path, split, filtered=False):
                     if base_string1 != base_string2 or substitutes1 != substitutes2:
                         skip = True
                 if skip:
-                    print('Skipping: ', row_pair)
+                    if verbose:
+                        print('Skipping: ', row_pair)
                     skip_count += 1
                     row_pair = []
                     continue
@@ -150,6 +151,18 @@ def _parse_row(row, occupations):
     return base_string, substitutes, continuation, occupation
 
 
+def _odds_ratio(model, female_context, male_context, candidates):
+    prob_female_occupation_continuation_given_female_pronoun, prob_male_occupation_continuation_given_female_pronoun = \
+        model.get_probabilities_for_examples(female_context, candidates)
+    prob_female_occupation_continuation_given_male_pronoun, prob_male_occupation_continuation_given_male_pronoun = \
+        model.get_probabilities_for_examples(male_context, candidates)
+
+    odds_given_female_pronoun = prob_female_occupation_continuation_given_female_pronoun / \
+                                prob_male_occupation_continuation_given_female_pronoun
+    odds_given_male_pronoun = prob_female_occupation_continuation_given_male_pronoun / \
+                              prob_male_occupation_continuation_given_male_pronoun
+    return odds_given_female_pronoun / odds_given_male_pronoun
+
 def analyze(examples):
     tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
 
@@ -159,43 +172,18 @@ def analyze(examples):
         candidates = [ex.female_occupation_continuation, ex.male_occupation_continuation]
         substitutes = [ex.female_pronoun, ex.male_pronoun]
         intervention = Intervention(tokenizer, ex.base_string, substitutes, candidates)
-        prob_female_occupation_continuation_given_female_pronoun, prob_male_occupation_continuation_given_female_pronoun = \
-            model.get_probabilities_for_examples(intervention.base_strings_tok[0], intervention.candidates_tok)
-        prob_female_occupation_continuation_given_male_pronoun, prob_male_occupation_continuation_given_male_pronoun = \
-            model.get_probabilities_for_examples(intervention.base_strings_tok[1], intervention.candidates_tok)
-
-        odds_given_female_pronoun = prob_female_occupation_continuation_given_female_pronoun / \
-                                    prob_male_occupation_continuation_given_female_pronoun
-        odds_given_male_pronoun = prob_female_occupation_continuation_given_male_pronoun / \
-                                  prob_male_occupation_continuation_given_male_pronoun
-        odds_ratio = odds_given_female_pronoun / odds_given_male_pronoun
-
+        female_context = intervention.base_strings_tok[0]
+        male_context = intervention.base_strings_tok[1]
+        odds_ratio = _odds_ratio(model, female_context, male_context, intervention.candidates_tok)
+        female_pronoun = female_context[-1:]
+        male_pronoun = male_context[-1:]
+        odds_ratio_no_context = _odds_ratio(model, female_pronoun, male_pronoun, intervention.candidates_tok)
         desc = f'{ex.base_string.replace("{}", ex.female_pronoun + "/" + ex.male_pronoun)} // {ex.female_occupation_continuation} // {ex.male_occupation_continuation}'
-
-        do_print = False
-        if do_print:
-            print()
-            print(desc)
-            print(
-                f"p(female occupation continuation | female pronoun) = {prob_female_occupation_continuation_given_female_pronoun:.3f}")
-            print(
-                f"p(male occupation continuation | female pronoun) = {prob_male_occupation_continuation_given_female_pronoun:.3f}")
-            print(
-                f"Odds female: p(female occupation continuation | female pronoun) / p(male occupation continuation | female pronoun) = {odds_given_female_pronoun}")
-
-            print(
-                f"p(female occupation continuation | male pronoun) = {prob_female_occupation_continuation_given_male_pronoun:.3f}")
-            print(
-                f"p(male occupation continuation | male pronoun) = {prob_male_occupation_continuation_given_male_pronoun:.3f}")
-            print(
-                f"Odds male: p(female occupation continuation | male pronoun) / p(male occupation continuation | male pronoun) = {odds_given_male_pronoun}")
-
-            print(f"Odds ratio: odds_female / odds_male = {odds_ratio: .3f}")
-
         female_occupation_female_pct = OCCUPATION_FEMALE_PCT[ex.female_occupation]
         male_occupation_female_pct = OCCUPATION_FEMALE_PCT[ex.male_occupation]
 
         data.append({'odds_ratio': odds_ratio,
+                     'odds_ratio_no_context': odds_ratio_no_context,
                      'female_occupation': ex.female_occupation,
                      'male_occupation': ex.male_occupation,
                      'desc': desc,
