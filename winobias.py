@@ -203,6 +203,14 @@ class WinobiasExample():
         self.female_occupation_continuation = female_occupation_continuation
         self.male_occupation_continuation = male_occupation_continuation
 
+    def to_intervention(self, tokenizer):
+        return Intervention(
+            tokenizer=tokenizer,
+            base_string=self.base_string,
+            substitutes=[self.female_pronoun, self.male_pronoun],
+            candidates=[self.female_occupation_continuation, self.male_occupation_continuation]
+        )
+
     def __str__(self):
         return inspect.cleandoc(f"""
             base_string: {self.base_string}
