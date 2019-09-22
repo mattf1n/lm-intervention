@@ -1,6 +1,7 @@
 import torch
 import matplotlib.pyplot as plt
 import seaborn as sns; sns.set()
+from tqdm import tqdm
 
 def report_intervention(intervention, model, effects=('indirect', 'direct'), verbose=False):
 
@@ -56,7 +57,7 @@ def report_interventions_summary(interventions, model, effects=('indirect', 'dir
     for effect in effects:
         odds_ratio_sum[effect] = torch.zeros((model.num_layers, model.num_heads))
     total_effect_sum = 0
-    for intervention in interventions:
+    for intervention in tqdm(interventions):
         x = intervention.base_strings_tok[0]
         x_alt = intervention.base_strings_tok[1]
         with torch.no_grad():
