@@ -4,6 +4,7 @@ import seaborn as sns; sns.set()
 from tqdm import tqdm
 import pandas as pd
 import numpy as np
+from scipy.stats import ttest_ind
 
 
 def perform_intervention(intervention, model, effects=('indirect', 'direct')):
@@ -55,6 +56,7 @@ def perform_intervention(intervention, model, effects=('indirect', 'direct')):
 
 
 def report_intervention(results, effects=('indirect', 'direct'), verbose=False):
+    """Report results for single intervention"""
 
     print(f"x : {results['base_string1']}")
     print(f"x': {results['base_string2']}")
@@ -82,6 +84,7 @@ def report_intervention(results, effects=('indirect', 'direct'), verbose=False):
 
 
 def perform_interventions(interventions, model, effects=('indirect', 'direct')):
+    """Perform multiple interventions"""
     results_list = []
     for intervention in tqdm(interventions):
         results = perform_intervention(intervention, model, effects)
@@ -89,7 +92,8 @@ def perform_interventions(interventions, model, effects=('indirect', 'direct')):
     return results_list
 
 
-def report_interventions_summary(results, effects=('indirect', 'direct'), verbose=False):
+def report_interventions_summary(results, effects=('indirect', 'direct'), verbose=False, k=10):
+    """Report summary results for multiple interventions"""
 
     df = pd.DataFrame(results)
 
@@ -98,12 +102,29 @@ def report_interventions_summary(results, effects=('indirect', 'direct'), verbos
     print(f"Mean total effect: {df.odds_ratio_total.mean():.2f}")
 
     for effect in effects:
-        odds_ratio_intervention = np.stack(df['odds_ratio_' + effect].to_numpy()) # Convert column to 3d ndarray
+        odds_ratio_intervention = np.stack(df['odds_ratio_' + effect].to_numpy()) # Convert column to 3d ndarray (num_examples x num_layers x num_heads)
         mean_effect = odds_ratio_intervention.mean(axis=0)
-        # mean_effect = odds_ratio_intervention.mean() # This doesn't work when you load from csv file
+        if effect == 'indirect':
+            ranking_metric = mean_effect
+        else:
+            ranking_metric = -mean_effect
+        topk_indices = _topk_indices(ranking_metric, k)
 
+        # Compute significance levels
+        all_values = odds_ratio_intervention.flatten()
+        print(f'\n{effect.upper()} Effect (mean = {all_values.mean()})')
+        print(f"Top {k} heads:")
+        for ind in topk_indices:
+            layer, head = np.unravel_index(ind, mean_effect.shape)
+            head_values = odds_ratio_intervention[:, layer, head].flatten()
+            tstatistic, pvalue = ttest_ind(head_values, all_values)
+            if effect == 'indirect':
+                assert tstatistic > 0
+            else:
+                assert tstatistic < 0
+            one_tailed_pvalue = pvalue / 2
+            print(f'   {layer} {head}: {mean_effect[layer, head]} (p={one_tailed_pvalue:.4f})')
         if verbose:
-            print(f'\n{effect.upper()} Effect')
             if effect == 'indirect':
                 print("   Intervention: replace Attn(x) with Attn(x') in a specific layer/head")
                 print(f"   Effect = (p(c2|x, Attn(x')) / p(c1|x, Attn(x')) / (p(c2|x) / p(c1|x))")
@@ -111,9 +132,14 @@ def report_interventions_summary(results, effects=('indirect', 'direct'), verbos
                 print("   Intervention: replace x with x' while preserving Attn(x) in a specific layer/head")
                 print(f"   Effect = (p(c2|x', Attn(x)) / p(c1|x', Attn(x)) / (p(c2|x) / p(c1|x))")
         plt.figure(figsize=(9, 7))
-
         ax = sns.heatmap(mean_effect, annot=True, annot_kws={"size": 12}, fmt=".2f")
         ax.set(xlabel='Head', ylabel='Layer', title=f'Mean {effect.capitalize()} Effect')
+
+
+def _topk_indices(arr, k):
+    """Return indices of top-k values"""
+    return (-arr).argsort(axis=None)[:k]
+
 
 if __name__ == "__main__":
     from pytorch_transformers import GPT2Tokenizer
@@ -138,9 +164,6 @@ if __name__ == "__main__":
 
     results = perform_interventions(interventions, model)
     report_interventions_summary(results)
-
-    df = DataFrame(results)
-    report_interventions_summary(df)
 
 
 
