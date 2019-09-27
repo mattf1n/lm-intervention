@@ -19,6 +19,7 @@ Intervention experiments in language models
 * Attention-related analysis:
 	* Interventions on value vectors (and maybe key vectors) of ambiguous word, e.g., how does erasing particular neuron in value vector (in particular layer/head) for "teacher" impact probability of "he" vs. "she"? Since value vectors are small (length 64 in GPT-2 small) and attention heads tend to specialize in particular behavior (coreference resolution?), we might see a large impact from individual neurons.
 	* Does attention "explain" gender-based coreference resolution? (See Figure 4 in https://arxiv.org/pdf/1906.05714.pdf) 
+* Groups of neurons: cluster neurons or group them in some way, to go beyond individual neuron contributions. Can also do some greedy thing. 
 	
 ## Experiments
 
