@@ -336,26 +336,39 @@ class Model():
 
         with torch.no_grad():
 
-            candidate1_probs = torch.zeros((self.num_layers, self.num_heads))
-            candidate2_probs = torch.zeros((self.num_layers, self.num_heads))
-            # Intervene at every head by overlaying attention induced by x_alt
+            candidate1_probs_head = torch.zeros((self.num_layers, self.num_heads))
+            candidate2_probs_head = torch.zeros((self.num_layers, self.num_heads))
+            candidate1_probs_layer = torch.zeros(self.num_layers)
+            candidate2_probs_layer = torch.zeros(self.num_layers)
+
+            if effect == 'indirect':
+                context = x
+            else:
+                context = x_alt
+
+            # Intervene at every layer and head by overlaying attention induced by x_alt
             for layer in range(self.num_layers):
                 layer_attention_override = attention_override[layer]
+                attention_override_mask = torch.ones_like(layer_attention_override, dtype=torch.uint8)
+                candidate1_probs_layer[layer], candidate2_probs_layer[layer] = self.attention_intervention(
+                    context=context,
+                    outputs=intervention.candidates_tok,
+                    layer=layer,
+                    attn_override=layer_attention_override,
+                    attn_override_mask=attention_override_mask)
                 for head in range(self.num_heads):
                     attention_override_mask = torch.zeros_like(layer_attention_override, dtype=torch.uint8)
                     attention_override_mask[0][head] = 1 # Set mask to 1 for single head only
-                    if effect == 'indirect':
-                        context = x
-                    else:
-                        context = x_alt
-                    candidate1_probs[layer][head], candidate2_probs[layer][head] = self.attention_intervention(
+                    candidate1_probs_head[layer][head], candidate2_probs_head[layer][head] = self.attention_intervention(
                         context=context,
                         outputs=intervention.candidates_tok,
                         layer=layer,
                         attn_override=layer_attention_override,
                         attn_override_mask=attention_override_mask)
 
-        return  candidate1_probs, candidate2_probs
+        return candidate1_probs_head, candidate2_probs_head, candidate1_probs_layer, candidate2_probs_layer
+
+
 
     def _tok_to_batch(self, tok_ids):
         return torch.tensor(tok_ids).unsqueeze(0)
