@@ -60,9 +60,9 @@ class Model():
     '''
     Wrapper for all model logic
     '''
-    def __init__(self, device='cpu', output_attentions=False):
+    def __init__(self, device='cpu', output_attentions=False, gpt2_version='gpt2'):
         super()
-        self.model = GPT2LMHeadModel.from_pretrained('gpt2', output_attentions=output_attentions)
+        self.model = GPT2LMHeadModel.from_pretrained(gpt2_version, output_attentions=output_attentions)
         self.model.eval()
         self.model.to(device)
 
