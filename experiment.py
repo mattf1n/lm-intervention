@@ -15,7 +15,7 @@ import statistics
 # import pandas as pd
 # import seaborn as sns
 # import matplotlib.pyplot as plt
-
+from utils import batch
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
 from gpt2_attention import AttentionOverride
 
@@ -122,16 +122,15 @@ class Model():
         Returns: list containing probability for each candidate
                       (normalized by length of candidate)
         """
-
         max_len = max(len(c) for c in candidates)
         if max_len == 1:
             outputs = [c[0] for c in candidates]
-            batch = torch.tensor(context).unsqueeze(0)
-            logits, past = self.model(batch)[:2]
+            logits, past = self.model(context)[:2]
             logits = logits[:, -1, :]
             probs = F.softmax(logits, dim=-1)
-            return probs[0][outputs].tolist()
+            return probs[:, outputs].tolist()
         else:
+            # TODO: HANDLE WHEN CONTEXT IS BATCH
             # TODO: Combine into single batch
             mean_probs = []
             for candidate in candidates:
@@ -161,7 +160,7 @@ class Model():
                             outputs,
                             rep,
                             layer,
-                            neuron,
+                            neurons,
                             position,
                             intervention_type='diff',
                             alpha=1.):
@@ -170,22 +169,39 @@ class Model():
                               input,
                               output,
                               position,
-                              neuron,
+                              neurons,
                               intervention,
                               intervention_type):
+            # Get the neurons to intervene on
+            gather_neurons = [[n] for n in neurons]
+            # First grab the position across batch
+            # Then, for each element, get correct index w/ gather
+            base = output[:, position, :].gather(
+                1, torch.LongTensor(gather_neurons))
+            intervention_view = intervention.view_as(base)
+
             if intervention_type == 'replace':
-                output[0, position, neuron] = intervention
+                base = intervention_view
             elif intervention_type == 'diff':
-                output[0, position, neuron] += intervention
+                base += intervention_view
             else:
                 raise ValueError(f"Invalid intervention_type: {intervention_type}")
+            # if intervention_type == 'replace':
+            #     output[0, position, neuron] = intervention
+            # elif intervention_type == 'diff':
+            #     output[0, position, neuron] += intervention
+            # else:
+            #     raise ValueError(f"Invalid intervention_type: {intervention_type}")
 
-        intervention_rep = alpha * rep[layer][neuron]
+        intervention_rep = alpha * rep[layer][neurons]
+        # Set up the context as batch
+        batch_size = len(neurons)
+        context = context.unsqueeze(0).repeat(batch_size, 1)
         mlp_intervention_handle = self.model.transformer.h[layer]\
                                       .mlp.register_forward_hook(
             partial(intervention_hook,
                     position=position,
-                    neuron=neuron,
+                    neurons=neurons,
                     intervention=intervention_rep,
                     intervention_type=intervention_type))
         new_probabilities = self.get_probabilities_for_examples(
@@ -267,7 +283,8 @@ class Model():
     def neuron_intervention_single_experiment(self,
                                               intervention,
                                               intervention_type,
-                                              alpha=1):
+                                              alpha=1,
+                                              bsize=200):
         """
         run one full neuron intervention experiment
         """
@@ -326,14 +343,14 @@ class Model():
 
             # Probabilities without intervention (Base case)
             candidate1_base_prob, candidate2_base_prob = self.get_probabilities_for_examples(
-                intervention.base_strings_tok[0],
-                intervention.candidates_tok)
+                intervention.base_strings_tok[0].unsqueeze(0),
+                intervention.candidates_tok)[0]
             candidate1_alt1_prob, candidate2_alt1_prob = self.get_probabilities_for_examples(
-                intervention.base_strings_tok[1],
-                intervention.candidates_tok)
+                intervention.base_strings_tok[1].unsqueeze(0),
+                intervention.candidates_tok)[0]
             candidate1_alt2_prob, candidate2_alt2_prob = self.get_probabilities_for_examples(
-                intervention.base_strings_tok[2],
-                intervention.candidates_tok)
+                intervention.base_strings_tok[2].unsqueeze(0),
+                intervention.candidates_tok)[0]
 
             # Now intervening on potentially biased example
 
@@ -341,16 +358,20 @@ class Model():
             candidate2_probs = torch.zeros((self.num_layers, self.num_neurons))
             # Intervene at every possible neuron
             for layer in range(self.num_layers):
-                for neuron in range(self.num_neurons):
-                    candidate1_probs[layer][neuron], candidate2_probs[layer][neuron] = self.neuron_intervention(
+                for neurons in batch(range(self.num_neurons), bsize):
+                    print(neurons)
+                    probs = self.neuron_intervention(
                         context=context,
                         outputs=intervention.candidates_tok,
                         rep=rep,
                         layer=layer,
-                        neuron=neuron,
+                        neurons=neurons,
                         position=intervention.position,
                         intervention_type=replace_or_diff,
                         alpha=alpha)
+                    for neuron, (p1, p2) in zip(neurons, probs):
+                        candidate1_probs[layer][neuron] = p1
+                        candidate2_probs[layer][neuron] = p2
 
         return (candidate1_base_prob, candidate2_base_prob,
                 candidate1_alt1_prob, candidate2_alt1_prob,
