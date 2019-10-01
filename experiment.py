@@ -111,49 +111,51 @@ class Model():
         return representation
 
     def get_probabilities_for_examples(self, context, candidates):
+        """Return probabilities of single-token candidates"""
+        for c in candidates:
+            if len(c) > 1:
+                raise ValueError(f"Multiple tokens not allowed: {c}")
+        outputs = [c[0] for c in candidates]
+        logits, past = self.model(context)[:2]
+        logits = logits[:, -1, :]
+        probs = F.softmax(logits, dim=-1)
+        return probs[:, outputs].tolist()
+
+    def get_probabilities_for_examples_multitoken(self, context, candidates):
         """
-        Return probability of candidates given context.
-        Prob of each candidate is normalized by length of candidate.
+        Return probability of multi-token candidates.
+        Prob of each candidate is normalized by number of tokens.
 
         Args:
-            context: list of token ids in context
+            context: Tensor of token ids in context
             candidates: list of list of token ids in each candidate
 
         Returns: list containing probability for each candidate
-                      (normalized by length of candidate)
         """
-        max_len = max(len(c) for c in candidates)
-        if max_len == 1:
-            outputs = [c[0] for c in candidates]
-            logits, past = self.model(context)[:2]
-            logits = logits[:, -1, :]
-            probs = F.softmax(logits, dim=-1)
-            return probs[:, outputs].tolist()
-        else:
-            # TODO: HANDLE WHEN CONTEXT IS BATCH
-            # TODO: Combine into single batch
-            mean_probs = []
-            for candidate in candidates:
-                combined = context + candidate
-                # Exclude last token position when predicting next token
-                batch = torch.tensor(combined[:-1]).unsqueeze(dim=0)
-                # Shape (batch_size, seq_len, vocab_size)
-                logits = self.model(batch)[0]
-                # Shape (seq_len, vocab_size)
-                log_probs = F.log_softmax(logits[-1, :, :], dim=-1)
-                context_end_pos = len(context) - 1
-                continuation_end_pos = context_end_pos + len(candidate)
-                token_log_probs = []
-                # TODO: Vectorize this
-                # Up to but not including last token position
-                for i in range(context_end_pos, continuation_end_pos):
-                    next_token_id = combined[i+1]
-                    next_token_log_prob = log_probs[i][next_token_id].item()
-                    token_log_probs.append(next_token_log_prob)
-                mean_token_log_prob = statistics.mean(token_log_probs)
-                mean_token_prob = math.exp(mean_token_log_prob)
-                mean_probs.append(mean_token_prob)
-            return mean_probs
+        # TODO: Combine into single batch
+        mean_probs = []
+        context = context.tolist()
+        for candidate in candidates:
+            combined = context + candidate
+            # Exclude last token position when predicting next token
+            batch = torch.tensor(combined[:-1]).unsqueeze(dim=0)
+            # Shape (batch_size, seq_len, vocab_size)
+            logits = self.model(batch)[0]
+            # Shape (seq_len, vocab_size)
+            log_probs = F.log_softmax(logits[-1, :, :], dim=-1)
+            context_end_pos = len(context) - 1
+            continuation_end_pos = context_end_pos + len(candidate)
+            token_log_probs = []
+            # TODO: Vectorize this
+            # Up to but not including last token position
+            for i in range(context_end_pos, continuation_end_pos):
+                next_token_id = combined[i+1]
+                next_token_log_prob = log_probs[i][next_token_id].item()
+                token_log_probs.append(next_token_log_prob)
+            mean_token_log_prob = statistics.mean(token_log_probs)
+            mean_token_prob = math.exp(mean_token_log_prob)
+            mean_probs.append(mean_token_prob)
+        return mean_probs
 
     def neuron_intervention(self,
                             context,
@@ -259,7 +261,7 @@ class Model():
         with torch.no_grad():
             hook = self.model.transformer.h[layer].attn.register_forward_hook(
                 intervention_hook)
-            new_probabilities = self.get_probabilities_for_examples(
+            new_probabilities = self.get_probabilities_for_examples_multitoken(
                 context,
                 outputs)
             hook.remove()

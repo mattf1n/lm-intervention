@@ -2,7 +2,7 @@ import os
 import inspect
 import re
 from tqdm import tqdm
-from pytorch_transformers import GPT2Tokenizer
+from transformers import GPT2Tokenizer
 from experiment import Model, Intervention
 import pandas as pd
 
@@ -153,9 +153,9 @@ def _parse_row(row, occupations):
 
 def _odds_ratio(model, female_context, male_context, candidates):
     prob_female_occupation_continuation_given_female_pronoun, prob_male_occupation_continuation_given_female_pronoun = \
-        model.get_probabilities_for_examples(female_context, candidates)
+        model.get_probabilities_for_examples_multitoken(female_context, candidates)
     prob_female_occupation_continuation_given_male_pronoun, prob_male_occupation_continuation_given_male_pronoun = \
-        model.get_probabilities_for_examples(male_context, candidates)
+        model.get_probabilities_for_examples_multitoken(male_context, candidates)
 
     odds_given_female_pronoun = prob_female_occupation_continuation_given_female_pronoun / \
                                 prob_male_occupation_continuation_given_female_pronoun
@@ -163,10 +163,11 @@ def _odds_ratio(model, female_context, male_context, candidates):
                               prob_male_occupation_continuation_given_male_pronoun
     return odds_given_female_pronoun / odds_given_male_pronoun
 
-def analyze(examples):
-    tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
 
-    model = Model()
+def analyze(examples, gpt2_version='gpt2'):
+    tokenizer = GPT2Tokenizer.from_pretrained(gpt2_version)
+
+    model = Model(gpt2_version=gpt2_version)
     data = []
     for ex in tqdm(examples):
         candidates = [ex.female_occupation_continuation, ex.male_occupation_continuation]

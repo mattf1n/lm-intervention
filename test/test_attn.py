@@ -3,7 +3,7 @@ import unittest
 from gpt2_attention import AttentionOverride
 from experiment import Model
 import torch
-from pytorch_transformers import GPT2Tokenizer, GPT2LMHeadModel
+from transformers import GPT2Tokenizer, GPT2LMHeadModel
 
 
 class AttnTest(unittest.TestCase):

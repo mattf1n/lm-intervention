@@ -28,13 +28,17 @@ class AttentionOverride(nn.Module):
         self.attn_override = attn_override
         self.attn_override_mask = attn_override_mask
 
-    def _attn(self, q, k, v, head_mask=None):
+    def _attn(self, q, k, v, attention_mask=None, head_mask=None):
         w = torch.matmul(q, k)
         if self.scale:
             w = w / math.sqrt(v.size(-1))
         nd, ns = w.size(-2), w.size(-1)
         b = self.bias[:, :, ns-nd:ns, :ns]
         w = w * b - 1e4 * (1 - b)
+
+        if attention_mask is not None:
+            # Apply the attention mask
+            w = w + attention_mask
 
         w = nn.Softmax(dim=-1)(w)
         w = self.attn_dropout(w)
@@ -67,7 +71,7 @@ class AttentionOverride(nn.Module):
         else:
             return x.permute(0, 2, 1, 3)  # (batch, head, seq_length, head_features)
 
-    def forward(self, x, layer_past=None, head_mask=None):
+    def forward(self, x, layer_past=None, attention_mask=None, head_mask=None):
         x = self.c_attn(x)
         query, key, value = x.split(self.split_size, dim=2)
         query = self.split_heads(query)
@@ -79,7 +83,7 @@ class AttentionOverride(nn.Module):
             value = torch.cat((past_value, value), dim=-2)
         present = torch.stack((key.transpose(-2, -1), value))  # transpose to have same shapes for stacking
 
-        attn_outputs = self._attn(query, key, value, head_mask)
+        attn_outputs = self._attn(query, key, value, attention_mask, head_mask)
         a = attn_outputs[0]
 
         a = self.merge_heads(a)
