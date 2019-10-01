@@ -361,7 +361,7 @@ class Model():
             # Intervene at every possible neuron
             for layer in range(self.num_layers):
                 for neurons in batch(range(self.num_neurons), bsize):
-                    print(neurons)
+                    # print(neurons)
                     probs = self.neuron_intervention(
                         context=context,
                         outputs=intervention.candidates_tok,
@@ -453,7 +453,8 @@ def main():
             tokenizer,
             base_sentence,
             [biased_word, "man", "woman"],
-            ["he", "she"])
+            ["he", "she"],
+            device='cpu')
 
     c1, c1_probs, c2, c2_probs = model.neuron_intervention_experiment(
         {biased_word: intervention},
