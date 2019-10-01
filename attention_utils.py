@@ -13,10 +13,10 @@ def perform_intervention(intervention, model, effect_types=('indirect', 'direct'
     x_alt = intervention.base_strings_tok[1]  # E.g. The doctor asked the nurse a question. She
 
     with torch.no_grad():
-        candidate1_base_prob, candidate2_base_prob = model.get_probabilities_for_examples(
+        candidate1_base_prob, candidate2_base_prob = model.get_probabilities_for_examples_multitoken(
             x,
             intervention.candidates_tok)
-        candidate1_alt_prob, candidate2_alt_prob = model.get_probabilities_for_examples(
+        candidate1_alt_prob, candidate2_alt_prob = model.get_probabilities_for_examples_multitoken(
             x_alt,
             intervention.candidates_tok)
 
@@ -156,7 +156,7 @@ def _topk_indices(arr, k):
 
 
 if __name__ == "__main__":
-    from pytorch_transformers import GPT2Tokenizer
+    from transformers import GPT2Tokenizer
     from experiment import Intervention, Model
     from pandas import DataFrame
     tokenizer = GPT2Tokenizer.from_pretrained('gpt2')

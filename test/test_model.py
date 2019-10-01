@@ -1,12 +1,10 @@
 import unittest
 
 import torch.nn.functional as F
-from gpt2_attention import AttentionOverride
 from experiment import Model
 import torch
-from pytorch_transformers import GPT2Tokenizer, GPT2LMHeadModel
+from transformers import GPT2Tokenizer
 import numpy as np
-import statistics
 from scipy.stats.mstats import gmean
 
 
@@ -49,8 +47,8 @@ class ModelTest(unittest.TestCase):
                 tokens[0] = 'Ġ' + tokens[0]
                 token_ids = self.tokenizer.convert_tokens_to_ids(tokens)
                 candidates_ids.append(token_ids)
-            context_ids = self.tokenizer.convert_tokens_to_ids(context_tokens)
-            probs = self.model.get_probabilities_for_examples(context_ids, candidates_ids)
+            context_ids = torch.LongTensor(self.tokenizer.convert_tokens_to_ids(context_tokens))
+            probs = self.model.get_probabilities_for_examples_multitoken(context_ids, candidates_ids)
             np.testing.assert_almost_equal(expected_probs, probs, 5)
 
     def _get_probabilities_for_examples_single_token(self, context, outputs):
