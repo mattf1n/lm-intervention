@@ -284,7 +284,7 @@ class Model():
                                               intervention,
                                               intervention_type,
                                               alpha=1,
-                                              bsize=200):
+                                              bsize=260):
         """
         run one full neuron intervention experiment
         """
