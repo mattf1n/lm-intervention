@@ -111,7 +111,7 @@ class Model():
         return representation
 
     def get_probabilities_for_examples(self, context, candidates):
-        """Return probabilities of single-token candidates"""
+        """Return probabilities of single-token candidates given context"""
         for c in candidates:
             if len(c) > 1:
                 raise ValueError(f"Multiple tokens not allowed: {c}")
@@ -123,7 +123,7 @@ class Model():
 
     def get_probabilities_for_examples_multitoken(self, context, candidates):
         """
-        Return probability of multi-token candidates.
+        Return probability of multi-token candidates given context.
         Prob of each candidate is normalized by number of tokens.
 
         Args:
