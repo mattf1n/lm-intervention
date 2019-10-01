@@ -119,7 +119,14 @@ def report_interventions_summary_by_head(results, effect_types=('indirect', 'dir
             else:
                 assert tstatistic < 0
             one_tailed_pvalue = pvalue / 2
-            print(f'   {layer} {head}: {mean_effect[layer, head]} (p={one_tailed_pvalue:.4f})')
+            print(f'   {layer} {head}: {mean_effect[layer, head]:.3f} (p={one_tailed_pvalue:.4f})')
+            if effect_type == 'indirect':
+                top_results_for_head = sorted(results,
+                                               key=lambda result: result['indirect_effect_head'][layer][head],
+                                               reverse=True)
+                for result in top_results_for_head[:3]:
+                    print(f'      {result["indirect_effect_head"][layer][head]:.3f} '
+                        f'{result["base_string1"]} | {result["candidate1"]} | {result["candidate2"]}')
         if verbose:
             if effect_type == 'indirect':
                 print("   Intervention: replace Attn(x) with Attn(x') in a specific layer/head")
