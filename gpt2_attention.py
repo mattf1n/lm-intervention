@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-from pytorch_transformers.modeling_utils import Conv1D
 import math
 
 class AttentionOverride(nn.Module):
