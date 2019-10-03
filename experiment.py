@@ -380,8 +380,6 @@ class Model():
                     for neuron, (p1, p2) in zip(neurons, probs):
                         candidate1_probs[layer][neuron] = p1
                         candidate2_probs[layer][neuron] = p2
-                    break
-                break
 
         return (candidate1_base_prob, candidate2_base_prob,
                 candidate1_alt1_prob, candidate2_alt1_prob,
