@@ -40,9 +40,9 @@ def convert_results_to_pd(interventions, intervention_results):
                     'candidate1_base_prob': float(candidate1_base_prob),
                     'candidate2_base_prob': float(candidate2_base_prob),
                     'candidate1_alt1_prob': float(candidate1_alt1_prob),
-                    'candidate2_alt1_prob': float(candidate1_alt1_prob),
-                    'candidate1_alt2_prob': float(candidate1_alt1_prob),
-                    'candidate2_alt2_prob': float(candidate1_alt1_prob),
+                    'candidate2_alt1_prob': float(candidate2_alt1_prob),
+                    'candidate1_alt2_prob': float(candidate1_alt2_prob),
+                    'candidate2_alt2_prob': float(candidate2_alt2_prob),
 
                     # intervention probs
                     'candidate1_prob': float(c1_prob),
