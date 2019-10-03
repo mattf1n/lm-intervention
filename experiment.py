@@ -15,7 +15,7 @@ import statistics
 # import pandas as pd
 # import seaborn as sns
 # import matplotlib.pyplot as plt
-from utils import batch
+from utils import batch, convert_results_to_pd
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
 from gpt2_attention import AttentionOverride
 
@@ -45,8 +45,9 @@ class Intervention():
         # Tokenized bases
         self.base_strings_tok = [self.enc.encode(s)
                                  for s in self.base_strings]
-        self.base_strings_tok = torch.LongTensor(self.base_strings_tok)
-        self.base_strings_tok.to(device)
+        # print(self.base_strings_tok)
+        self.base_strings_tok = torch.LongTensor(self.base_strings_tok)\
+                                     .to(device)
         # Where to intervene
         self.position = base_string.split().index('{}')
 
@@ -69,6 +70,7 @@ class Model():
                  output_attentions=False,
                  gpt2_version='gpt2'):
         super()
+        self.device = device
         self.model = GPT2LMHeadModel.from_pretrained(
             gpt2_version,
             output_attentions=output_attentions)
@@ -176,10 +178,11 @@ class Model():
                               intervention_type):
             # Get the neurons to intervene on
             gather_neurons = [[n] for n in neurons]
+            gather_neurons = torch.LongTensor(gather_neurons).to(self.device)
             # First grab the position across batch
             # Then, for each element, get correct index w/ gather
             base = output[:, position, :].gather(
-                1, torch.LongTensor(gather_neurons))
+                1, gather_neurons)
             intervention_view = intervention.view_as(base)
 
             if intervention_type == 'replace':
@@ -188,12 +191,13 @@ class Model():
                 base += intervention_view
             else:
                 raise ValueError(f"Invalid intervention_type: {intervention_type}")
-            # if intervention_type == 'replace':
-            #     output[0, position, neuron] = intervention
-            # elif intervention_type == 'diff':
-            #     output[0, position, neuron] += intervention
-            # else:
-            #     raise ValueError(f"Invalid intervention_type: {intervention_type}")
+            # Overwrite values in the output
+            # First define mask where to overwrite
+            scatter_mask = torch.zeros_like(output).byte()
+            for i, v in enumerate(neurons):
+                scatter_mask[i, position, v] = 1
+            # Then take values from base and scatter
+            output.masked_scatter_(scatter_mask, base.flatten())
 
         intervention_rep = alpha * rep[layer][neurons]
         # Set up the context as batch
@@ -285,8 +289,8 @@ class Model():
     def neuron_intervention_single_experiment(self,
                                               intervention,
                                               intervention_type,
-                                              alpha=1,
-                                              bsize=260):
+                                              alpha=100,
+                                              bsize=400):
         """
         run one full neuron intervention experiment
         """
@@ -353,6 +357,9 @@ class Model():
             candidate1_alt2_prob, candidate2_alt2_prob = self.get_probabilities_for_examples(
                 intervention.base_strings_tok[2].unsqueeze(0),
                 intervention.candidates_tok)[0]
+            # print("base", candidate1_base_prob, candidate2_base_prob)
+            # print("man", candidate1_alt1_prob, candidate2_alt1_prob)
+            # print("woman", candidate1_alt2_prob, candidate2_alt2_prob)
 
             # Now intervening on potentially biased example
 
@@ -361,7 +368,6 @@ class Model():
             # Intervene at every possible neuron
             for layer in range(self.num_layers):
                 for neurons in batch(range(self.num_neurons), bsize):
-                    # print(neurons)
                     probs = self.neuron_intervention(
                         context=context,
                         outputs=intervention.candidates_tok,
@@ -374,6 +380,8 @@ class Model():
                     for neuron, (p1, p2) in zip(neurons, probs):
                         candidate1_probs[layer][neuron] = p1
                         candidate2_probs[layer][neuron] = p2
+                    break
+                break
 
         return (candidate1_base_prob, candidate2_base_prob,
                 candidate1_alt1_prob, candidate2_alt1_prob,
@@ -444,8 +452,9 @@ class Model():
 
 
 def main():
+    DEVICE = 'cpu'
     tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
-    model = Model()
+    model = Model(device=DEVICE)
 
     base_sentence = "The {} said that"
     biased_word = "teacher"
@@ -454,14 +463,15 @@ def main():
             base_sentence,
             [biased_word, "man", "woman"],
             ["he", "she"],
-            device='cpu')
+            device=DEVICE)
+    interventions = {biased_word: intervention}
 
-    c1, c1_probs, c2, c2_probs = model.neuron_intervention_experiment(
-        {biased_word: intervention},
-        'man_minus_woman')
+    intervention_results = model.neuron_intervention_experiment(
+        interventions, 'man_minus_woman')
+    df = convert_results_to_pd(
+        interventions, intervention_results)
     print('more probable candidate per layer, across all neurons in the layer')
-    print('candidate1:', intervention.candidates[0], c1)
-    print('candidate2:', intervention.candidates[1], c2)
+    print(df[0:5])
 
 
 if __name__ == "__main__":

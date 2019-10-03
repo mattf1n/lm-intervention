@@ -20,9 +20,9 @@ def convert_results_to_pd(interventions, intervention_results):
     for word in intervention_results:
         intervention = interventions[word]
         candidate1_base_prob, candidate2_base_prob,\
-        candidate1_alt1_prob, candidate2_alt1_prob,\
-        candidate1_alt2_prob, candidate2_alt2_prob,\
-        candidate1_probs, candidate2_probs = intervention_results[word]
+            candidate1_alt1_prob, candidate2_alt1_prob,\
+            candidate1_alt2_prob, candidate2_alt2_prob,\
+            candidate1_probs, candidate2_probs = intervention_results[word]
         for layer in range(candidate1_probs.size(0)):
             for neuron in range(candidate1_probs.size(1)):
                 c1_prob, c2_prob = candidate1_probs[layer][neuron], candidate2_probs[layer][neuron]
