@@ -88,7 +88,8 @@ def perform_interventions(interventions, model, effect_types=('indirect', 'direc
     return results_list
 
 
-def report_interventions_summary_by_head(results, effect_types=('indirect', 'direct'), verbose=False, k=10):
+def report_interventions_summary_by_head(results, effect_types=('indirect', 'direct'), verbose=False, k=10,
+                                         show_head_examples=False):
     """Report summary results for multiple interventions by head"""
 
     df = pd.DataFrame(results)
@@ -120,7 +121,7 @@ def report_interventions_summary_by_head(results, effect_types=('indirect', 'dir
                 assert tstatistic < 0
             one_tailed_pvalue = pvalue / 2
             print(f'   {layer} {head}: {mean_effect[layer, head]:.3f} (p={one_tailed_pvalue:.4f})')
-            if effect_type == 'indirect':
+            if effect_type == 'indirect' and show_head_examples:
                 top_results_for_head = sorted(results,
                                                key=lambda result: result['indirect_effect_head'][layer][head],
                                                reverse=True)
@@ -134,7 +135,7 @@ def report_interventions_summary_by_head(results, effect_types=('indirect', 'dir
             elif effect_type == 'direct':
                 print("   Intervention: replace x with x' while preserving Attn(x) in a specific layer/head")
                 print(f"   Effect = (p(c2|x', Attn(x)) / p(c1|x', Attn(x)) / (p(c2|x) / p(c1|x)) - 1")
-        plt.figure(figsize=(9, 7))
+        plt.figure(figsize=(14, 10))
         ax = sns.heatmap(mean_effect, annot=True, annot_kws={"size": 12}, fmt=".2f")
         ax.set(xlabel='Head', ylabel='Layer', title=f'Mean {effect_type.capitalize()} Effect')
 
