@@ -140,7 +140,7 @@ class Model():
         for candidate in candidates:
             combined = context + candidate
             # Exclude last token position when predicting next token
-            batch = torch.tensor(combined[:-1]).unsqueeze(dim=0)
+            batch = torch.tensor(combined[:-1]).unsqueeze(dim=0).to(self.device)
             # Shape (batch_size, seq_len, vocab_size)
             logits = self.model(batch)[0]
             # Shape (seq_len, vocab_size)
@@ -402,7 +402,8 @@ class Model():
             input = x  # Get attention for x
         else:
             raise ValueError(f"Invalid effect: {effect}")
-        attention_override = self.model(self._tok_to_batch(input))[-1]
+        batch = torch.tensor(input).unsqueeze(0).to(self.device)
+        attention_override = self.model(batch)[-1]
 
         batch_size = 1
         seq_len = len(x)
@@ -444,9 +445,6 @@ class Model():
                         attn_override_mask=attention_override_mask)
 
         return candidate1_probs_head, candidate2_probs_head, candidate1_probs_layer, candidate2_probs_layer
-
-    def _tok_to_batch(self, tok_ids):
-        return torch.tensor(tok_ids).unsqueeze(0)
 
 
 def main():
