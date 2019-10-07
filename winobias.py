@@ -51,19 +51,19 @@ OCCUPATION_FEMALE_PCT = {
 }
 
 
-def load_dev_examples(path='winobias_data/', filtered=False, verbose=False):
-    return load_examples(path, 'dev', filtered, verbose)
+def load_dev_examples(path='winobias_data/', subjective_filter=False, verbose=False):
+    return load_examples(path, 'dev', subjective_filter, verbose)
 
-def load_examples(path, split, filtered=False, verbose=False):
-    print(f'Split: {split.upper()}, Filtered: {filtered}')
+def load_examples(path, split, subjective_filter=False, verbose=False):
+    print(f'Split: {split.upper()}, Subjective Filter: {subjective_filter}')
     with open(os.path.join(path, 'female_occupations.txt')) as f:
         female_occupations = [row.lower().strip() for row in f]
     with open(os.path.join(path, 'male_occupations.txt')) as f:
         male_occupations = [row.lower().strip() for row in f]
     occupations = female_occupations + male_occupations
 
-    if filtered:
-        fname = f'pro_stereotyped_type1.txt.{split}.filtered'
+    if subjective_filter:
+        fname = f'pro_stereotyped_type1.txt.{split}.subjectivefilter'
     else:
         fname = f'pro_stereotyped_type1.txt.{split}'
 

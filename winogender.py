@@ -13,7 +13,7 @@ def load_examples(path='winogender_data/'):
             bergsma_pct_female[occupation] = float(row[1])
             bls_pct_female[occupation] = float(row[2])
     examples = []
-    with open(os.path.join(path, 'winogender_templates_filtered.tsv')) as f:
+    with open(os.path.join(path, 'winogender_templates_structurefilter.tsv')) as f:
         next(f, None)  # skip the headers
         row_pair = []
         for row in csv.reader(f, delimiter='\t'):
