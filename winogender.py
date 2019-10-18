@@ -3,6 +3,7 @@ import csv
 import inspect
 from experiment import Intervention
 
+
 def load_examples(path='winogender_data/'):
     bergsma_pct_female = {}
     bls_pct_female = {}

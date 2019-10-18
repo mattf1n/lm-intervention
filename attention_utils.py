@@ -96,7 +96,7 @@ def report_interventions_summary_by_head(results, effect_types=('indirect', 'dir
 
     print('*** SUMMARY BY HEAD ***')
     print(f"Num interventions: {len(df)}")
-    print(f"Mean total effect: {df.total_effect.mean():.2f}")
+    print(f"Mean total effect: {df.total_effect.mean():.3f}")
 
     for effect_type in effect_types:
         effect = np.stack(df[effect_type + '_effect_head'].to_numpy())  # Convert column to 3d ndarray (num_examples x num_layers x num_heads)
@@ -146,7 +146,7 @@ def report_interventions_summary_by_layer(results, effect_types=('indirect', 'di
 
     print('*** SUMMARY BY LAYER ***')
     print(f"Num interventions: {len(df)}")
-    print(f"Mean total effect: {df.total_effect.mean():.2f}")
+    print(f"Mean total effect: {df.total_effect.mean():.3f}")
 
     for effect_type in effect_types:
         effect = np.stack(df[effect_type + '_effect_layer'].to_numpy())  # Convert column to 2d ndarray (num_examples x num_layers)
@@ -157,6 +157,21 @@ def report_interventions_summary_by_layer(results, effect_types=('indirect', 'di
         ax = sns.barplot(x=mean_effect, y=list(range(n_layers)), color="blue", saturation=.3, orient="h")
         ax.set(ylabel='Layer', title=f'Mean {effect_type.capitalize()} Effect')
 
+
+def get_odds_ratio(intervention, model):
+    x = intervention.base_strings_tok[0]
+    x_alt = intervention.base_strings_tok[1]
+    with torch.no_grad():
+        candidate1_base_prob, candidate2_base_prob = model.get_probabilities_for_examples_multitoken(
+            x,
+            intervention.candidates_tok)
+        candidate1_alt_prob, candidate2_alt_prob = model.get_probabilities_for_examples_multitoken(
+            x_alt,
+            intervention.candidates_tok)
+
+    odds_base = candidate2_base_prob / candidate1_base_prob
+    odds_alt = candidate2_alt_prob / candidate1_alt_prob
+    return odds_alt / odds_base
 
 def _topk_indices(arr, k):
     """Return indices of top-k values"""
