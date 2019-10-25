@@ -50,9 +50,11 @@ OCCUPATION_FEMALE_PCT = {
     'secretary': 95
 }
 
-
 def load_dev_examples(path='winobias_data/', subjective_filter=False, verbose=False):
     return load_examples(path, 'dev', subjective_filter, verbose)
+
+def load_test_examples(path='winobias_data/', subjective_filter=False, verbose=False):
+    return load_examples(path, 'test', subjective_filter, verbose)
 
 def load_examples(path, split, subjective_filter=False, verbose=False):
     print(f'Split: {split.upper()}, Subjective Filter: {subjective_filter}')
