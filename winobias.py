@@ -230,6 +230,4 @@ class WinobiasExample():
 
 
 if __name__ == "__main__":
-    for ex in load_dev_examples():
-        print()
-        print(ex)
+    load_test_examples(verbose=True)
