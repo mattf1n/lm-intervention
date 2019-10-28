@@ -105,7 +105,7 @@ def report_interventions_summary_by_head(results, effect_types=('indirect', 'dir
             ranking_metric = mean_effect
         else:
             ranking_metric = -mean_effect
-        topk_indices = _topk_indices(ranking_metric, k)
+        topk_indices = topk_indices(ranking_metric, k)
 
         # Compute significance levels
         all_values = effect.flatten()
@@ -173,7 +173,7 @@ def get_odds_ratio(intervention, model):
     odds_alt = candidate2_alt_prob / candidate1_alt_prob
     return odds_alt / odds_base
 
-def _topk_indices(arr, k):
+def topk_indices(arr, k):
     """Return indices of top-k values"""
     return (-arr).argsort(axis=None)[:k]
 
