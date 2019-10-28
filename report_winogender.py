@@ -22,10 +22,11 @@ def main():
                         t.add_row([data.get(field, '') for field in fields])
                     except (KeyError, AttributeError):
                         print('Skipping file:', fname)
-    print("WINOGENDER RESULTS:")
     t.align = 'r'
     t.float_format = '.3'
-    print(t)
+    with open('results/attention_intervention/winogender_summary.txt', 'w') as o:
+        o.write('WINOGENDER SUMMARY:\n\n')
+        o.write(t.get_string())
 
 
 if __name__ == '__main__':
