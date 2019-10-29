@@ -6,7 +6,7 @@ import numpy as np
 from attention_utils import topk_indices
 
 
-def save_bar_chart(data, source, model_version, filter, suffix, k=10):
+def save_figures(data, source, model_version, filter, suffix, k=10):
 
     # Load data from json obj
     results = data['results']
@@ -20,7 +20,7 @@ def save_bar_chart(data, source, model_version, filter, suffix, k=10):
     # Select top k heads by indirect effect
     topk_inds = topk_indices(mean_indirect_by_head, k)
 
-    # Populate data for figure
+    # Plot stacked bar chart
     topk_direct = []
     topk_indirect = []
     labels = []
@@ -29,8 +29,6 @@ def save_bar_chart(data, source, model_version, filter, suffix, k=10):
         topk_indirect.append(mean_indirect_by_head[layer, head])
         topk_direct.append(mean_direct_by_head[layer, head])
         labels.append(f'{layer}-{head}')
-
-    # Plot and save figure
     width = 0.6
     inds = range(k)
     p1 = plt.bar(inds, topk_direct, width)
@@ -47,6 +45,23 @@ def save_bar_chart(data, source, model_version, filter, suffix, k=10):
                 f'{suffix}.png', format='png')
     plt.close()
 
+    # Plot heatmap for direct and indirect effect
+    if model_version in ('gpt2', 'distilgpt2'):
+        annot = True
+    else:
+        annot = False
+    for effect_type in ('indirect', 'direct'):
+        if effect_type == 'indirect':
+            mean_effect = mean_indirect_by_head
+        else:
+            mean_effect = mean_direct_by_head
+        ax = sns.heatmap(mean_effect, annot=annot, annot_kws={"size": 9}, fmt=".2f", square=True)
+        ax.set(xlabel='Head', ylabel='Layer', title=f'Mean {effect_type.capitalize()} Effect')
+        plt.figure(num=1, figsize=(14, 10))
+        plt.savefig(f'results/attention_intervention/heat_maps_{effect_type}/{source}_{model_version}_{filter}_'
+                    f'{suffix}.png', format='png')
+        plt.close()
+
 
 def main():
     sns.set_context("paper")
@@ -62,7 +77,8 @@ def main():
                 fname =  f"winobias_data/attention_intervention_{model_version}_{filter}_{split}.json"
                 with open(fname) as f:
                     data = json.load(f)
-                    save_bar_chart(data, 'winobias', model_version, filter, split)
+                    save_figures(data, 'winobias', model_version, filter, split)
+
 
     # Process winogender
     for model_version in model_versions:
@@ -71,7 +87,7 @@ def main():
                 fname = f"winogender_data/attention_intervention_{stat}_{model_version}_{filter}.json"
                 with open(fname) as f:
                     data = json.load(f)
-                    save_bar_chart(data, 'winogender', model_version, filter, stat)
+                    save_figures(data, 'winogender', model_version, filter, stat)
 
 
 if __name__ == '__main__':
