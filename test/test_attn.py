@@ -94,6 +94,8 @@ class AttnTest(unittest.TestCase):
             hook.remove()
             self.assertFalse(torch.allclose(lm_logits2, lm_logits4))
 
+
+
     def _to_batch(self, text):
         encoded = self.tokenizer.encode(text)
         return torch.tensor(encoded, dtype=torch.long).unsqueeze(0)

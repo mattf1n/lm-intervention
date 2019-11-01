@@ -242,33 +242,42 @@ class Model():
     def attention_intervention(self,
                                context,
                                outputs,
-                               layer,
-                               attn_override,
-                               attn_override_mask):
+                               attn_override_data):
         """ Override attention values in specified layer
 
         Args:
             context: context text
             outputs: candidate outputs
-            layer: layer in which to intervene
-            attn_override: values to override the computed attention weights.
-                           Shape is [batch_size, num_heads, seq_len, seq_len]
-            attn_override_mask: indicates which attention weights to override.
-                                Shape is [batch_size, num_heads, seq_len, seq_len]
+            attn_override_data: list of dicts of form:
+                {
+                    'layer': <index of layer on which to intervene>,
+                    'attention_override': <values to override the computed attention weights.
+                           Shape is [batch_size, num_heads, seq_len, seq_len]>,
+                    'attention_override_mask': <indicates which attention weights to override.
+                                Shape is [batch_size, num_heads, seq_len, seq_len]>
+                }
         """
 
-        def intervention_hook(module, input, outputs):
+        def intervention_hook(module, input, outputs, attn_override, attn_override_mask):
             attention_override_module = AttentionOverride(
                 module, attn_override, attn_override_mask)
             outputs[:] = attention_override_module(*input)
 
         with torch.no_grad():
-            hook = self.model.transformer.h[layer].attn.register_forward_hook(
-                intervention_hook)
+            hooks = []
+            for d in attn_override_data:
+                attn_override = d['attention_override']
+                attn_override_mask = d['attention_override_mask']
+                layer = d['layer']
+                hooks.append(self.model.transformer.h[layer].attn.register_forward_hook(
+                    partial(intervention_hook, attn_override=attn_override, attn_override_mask=attn_override_mask)))
+
             new_probabilities = self.get_probabilities_for_examples_multitoken(
                 context,
                 outputs)
-            hook.remove()
+
+            for hook in hooks:
+                hook.remove()
             return new_probabilities
 
     def neuron_intervention_experiment(self,
@@ -425,26 +434,41 @@ class Model():
                 context = x_alt
 
             # Intervene at every layer and head by overlaying attention induced by x_alt
+            model_attn_override_data = [] # Save layer interventions for model-level intervention later
             for layer in range(self.num_layers):
                 layer_attention_override = attention_override[layer]
                 attention_override_mask = torch.ones_like(layer_attention_override, dtype=torch.uint8)
+                layer_attn_override_data = [{
+                    'layer': layer,
+                    'attention_override': layer_attention_override,
+                    'attention_override_mask': attention_override_mask
+                }]
                 candidate1_probs_layer[layer], candidate2_probs_layer[layer] = self.attention_intervention(
                     context=context,
                     outputs=intervention.candidates_tok,
-                    layer=layer,
-                    attn_override=layer_attention_override,
-                    attn_override_mask=attention_override_mask)
+                    attn_override_data = layer_attn_override_data)
+                model_attn_override_data.extend(layer_attn_override_data)
                 for head in range(self.num_heads):
                     attention_override_mask = torch.zeros_like(layer_attention_override, dtype=torch.uint8)
                     attention_override_mask[0][head] = 1 # Set mask to 1 for single head only
+                    head_attn_override_data = [{
+                        'layer': layer,
+                        'attention_override': layer_attention_override,
+                        'attention_override_mask': attention_override_mask
+                    }]
                     candidate1_probs_head[layer][head], candidate2_probs_head[layer][head] = self.attention_intervention(
                         context=context,
                         outputs=intervention.candidates_tok,
-                        layer=layer,
-                        attn_override=layer_attention_override,
-                        attn_override_mask=attention_override_mask)
+                        attn_override_data=head_attn_override_data)
 
-        return candidate1_probs_head, candidate2_probs_head, candidate1_probs_layer, candidate2_probs_layer
+            # Intervene on entire model by overlaying attention induced by x_alt
+            candidate1_probs_model, candidate2_probs_model = self.attention_intervention(
+                context=context,
+                outputs=intervention.candidates_tok,
+                attn_override_data=model_attn_override_data)
+
+        return candidate1_probs_head, candidate2_probs_head, candidate1_probs_layer, candidate2_probs_layer,\
+            candidate1_probs_model, candidate2_probs_model
 
 
 def main():

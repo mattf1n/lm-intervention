@@ -42,13 +42,18 @@ def perform_intervention(intervention, model, effect_types=('indirect', 'direct'
     }
 
     for effect_type in effect_types:
-        candidate1_probs_head, candidate2_probs_head, candidate1_probs_layer, candidate2_probs_layer = model.attention_intervention_experiment(intervention, effect_type)
+        candidate1_probs_head, candidate2_probs_head, candidate1_probs_layer, candidate2_probs_layer,\
+            candidate1_probs_model, candidate2_probs_model = model.attention_intervention_experiment(
+            intervention, effect_type)
         odds_intervention_head = candidate2_probs_head / candidate1_probs_head
         odds_intervention_layer = candidate2_probs_layer / candidate1_probs_layer
+        odds_intervention_model = candidate2_probs_model / candidate1_probs_model
         effect_head = (odds_intervention_head - odds_base) / odds_base
         effect_layer = (odds_intervention_layer - odds_base) / odds_base
+        effect_model = (odds_intervention_model - odds_base) / odds_base
         results[effect_type + "_effect_head"] = effect_head.tolist()
         results[effect_type + "_effect_layer"] = effect_layer.tolist()
+        results[effect_type + "_effect_model"] = effect_model
 
     return results
 

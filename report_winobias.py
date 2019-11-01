@@ -4,8 +4,9 @@ import pandas as pd
 import numpy as np
 
 def main():
-    fields = ['model_version', 'do_filter', 'split', 'mean_total_effect', 'mean_sum_indirect_effect', 'prop_aligned', 'num_examples_loaded',
-              'num_examples_analyzed', 'filter_quantile', 'threshold', 'num_examples_aligned']
+    fields = ['model_version', 'do_filter', 'split', 'mean_total_effect', 'mean_model_indirect_effect',
+              'mean_model_direct_effect', 'mean_sum_indirect_effect', 'prop_aligned', 'num_examples_loaded',
+              'num_examples_analyzed']
     t = PrettyTable(fields)
     for model_version in ['distilgpt2', 'gpt2', 'gpt2-medium', 'gpt2-large']:
         for filter in ['filtered', 'unfiltered']:
