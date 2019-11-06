@@ -92,7 +92,7 @@ def save_figures(data, source, model_version, filter, suffix, k=10):
         # ax2.spines['bottom'].set_visible(False)
         ax2.spines['left'].set_visible(False)
         ax2.xaxis.set_ticks_position('bottom')
-        ax2.axvline(0)
+        ax2.axvline(0, linewidth=.85, color='black')
         plt.figure(num=1, figsize=(14, 10))
         # plt.show()
         plt.savefig(f'results/attention_intervention/heat_maps_{effect_type}/{source}_{model_version}_{filter}_'
