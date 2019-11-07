@@ -68,9 +68,9 @@ def save_figures(data, source, model_version, filter, suffix, k=10):
         else:
             effect_head = mean_direct_by_head
             effect_layer = mean_direct_by_layer
-        fig = plt.figure(figsize=(5, 3.8))
-        ax1 = plt.subplot2grid((100, 100), (0, 0), colspan=60, rowspan=99)
-        ax2 = plt.subplot2grid((100, 100), (0, 62), colspan=30, rowspan=75)
+        fig = plt.figure(figsize=(4.2, 3.8))
+        ax1 = plt.subplot2grid((100, 85), (0, 0), colspan=60, rowspan=99)
+        ax2 = plt.subplot2grid((100, 85), (0, 62), colspan=14, rowspan=75)
         sns.heatmap(effect_head, ax=ax1, annot=annot, annot_kws={"size": 9}, fmt=".2f", square=True, cbar=False)
         # split axes of heatmap to put colorbar
         ax_divider = make_axes_locatable(ax1)
@@ -81,8 +81,8 @@ def save_figures(data, source, model_version, filter, suffix, k=10):
         colorbar(ax1.get_children()[0], cax=cax, orientation='horizontal')
         # # locate colorbar ticks
         cax.xaxis.set_ticks_position('bottom')
-        ax1.set(xlabel='Head', ylabel='Layer', title='Head Indirect Effect')
-        ax2.set(title=f'    Layer {effect_type.capitalize()} Effect')
+        ax1.set(xlabel='Head', ylabel='Layer', title='Head Effect')
+        ax2.set(title=f'     Layer Effect')
         # sns.set_style("ticks")
         sns.barplot(x=effect_layer, ax=ax2, y=list(range(n_layers)), color="#4472C4", orient="h")
         # ax2.set_frame_on(False)
