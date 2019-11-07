@@ -55,12 +55,40 @@ def save_figures(data, source, model_version, filter, suffix, k=10):
     p3 = plt.axhline(data['mean_total_effect'], linestyle='--')
     plt.legend((p3, p2[0], p1[0]), ('Total', 'Indirect', 'Direct'), loc='lower right', fontsize=14)
     plt.figure(num=1, figsize=(10, 15))
-    plt.savefig(f'results/attention_intervention/bar_charts/{source}_{model_version}_{filter}_'
+    plt.savefig(f'results/attention_intervention/stacked_bar_charts/{source}_{model_version}_{filter}_'
                 f'{suffix}.png', format='png')
     plt.close()
 
-    # Plot heatmap + barplot for direct and indirect effect
     annot = False
+
+    # Plot heatmap for direct and indirect effect
+    for effect_type in ('indirect', 'direct'):
+        if effect_type == 'indirect':
+            mean_effect = mean_indirect_by_head
+        else:
+            mean_effect = mean_direct_by_head
+        ax = sns.heatmap(mean_effect, annot=annot, annot_kws={"size": 9}, fmt=".2f", square=True)
+        ax.set(xlabel='Head', ylabel='Layer', title=f'Mean {effect_type.capitalize()} Effect')
+        plt.figure(num=1, figsize=(7, 5))
+        plt.savefig(f'results/attention_intervention/heat_maps_{effect_type}/{source}_{model_version}_{filter}_'
+                    f'{suffix}.png', format='png')
+        plt.close()
+
+    # Plot layer-level bar chart for indirect and direct effects
+    for effect_type in ('indirect', 'direct'):
+        if effect_type == 'indirect':
+            mean_effect = mean_indirect_by_layer
+        else:
+            mean_effect = mean_direct_by_layer
+        plt.figure(num=1, figsize=(5, 5))
+        ax = sns.barplot(x=mean_effect, y=list(range(n_layers)), orient="h", color="#4472C4")
+        ax.set(ylabel='Layer', title=f'Mean {effect_type.capitalize()} Effect')
+        # ax.axvline(0, linewidth=.85, color='black')
+        plt.savefig(f'results/attention_intervention/layer_{effect_type}/{source}_{model_version}_{filter}_'
+                    f'{suffix}.png', format='png')
+        plt.close()
+
+    # Plot heatmap + barplot for direct and indirect effect
     for effect_type in ('indirect', 'direct'):
         if effect_type == 'indirect':
             effect_head = mean_indirect_by_head
@@ -68,7 +96,7 @@ def save_figures(data, source, model_version, filter, suffix, k=10):
         else:
             effect_head = mean_direct_by_head
             effect_layer = mean_direct_by_layer
-        fig = plt.figure(figsize=(4.2, 3.8))
+        fig = plt.figure(figsize=(4.3, 3.8))
         ax1 = plt.subplot2grid((100, 85), (0, 0), colspan=60, rowspan=99)
         ax2 = plt.subplot2grid((100, 85), (0, 62), colspan=14, rowspan=75)
         sns.heatmap(effect_head, ax=ax1, annot=annot, annot_kws={"size": 9}, fmt=".2f", square=True, cbar=False)
@@ -95,9 +123,11 @@ def save_figures(data, source, model_version, filter, suffix, k=10):
         ax2.axvline(0, linewidth=.85, color='black')
         plt.figure(num=1, figsize=(14, 10))
         # plt.show()
-        plt.savefig(f'results/attention_intervention/heat_maps_{effect_type}/{source}_{model_version}_{filter}_'
+        plt.savefig(f'results/attention_intervention/heat_maps_with_bar_{effect_type}/{source}_{model_version}_{filter}_'
                     f'{suffix}.png', format='png')
         plt.close()
+
+
 
 def main():
     sns.set_context("paper")
