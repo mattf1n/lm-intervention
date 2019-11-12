@@ -47,7 +47,7 @@ def save_figures(data, source, model_version, filter, suffix, k=10):
     inds = range(k)
     p1 = plt.bar(inds, topk_direct, width)
     p2 = plt.bar(inds, topk_indirect, width, bottom=topk_direct)
-    plt.ylabel('Effect')
+    plt.ylabel('Effect', size=12)
     plt.title('Effects of top heads', fontsize=14)
     plt.xticks(inds, labels, size=12)
     plt.yticks(size=12)
