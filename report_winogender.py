@@ -17,7 +17,7 @@ model_to_name = {
 }
 
 def main():
-    fields = ['model_version', 'do_filter', 'split', 'mean_total_effect', 'mean_model_indirect_effect',
+    fields = ['model_version', 'do_filter', 'stat', 'mean_total_effect', 'mean_model_indirect_effect',
               'mean_model_direct_effect', 'mean_sum_indirect_effect', 'prop_aligned', 'num_examples_loaded',
               'num_examples_analyzed']
     t = PrettyTable(fields)
