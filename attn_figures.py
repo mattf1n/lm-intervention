@@ -88,7 +88,6 @@ def save_figures(data, source, model_version, filter, suffix, k=10):
                     f'{suffix}.png', format='png')
         plt.close()
 
-    # Plot heatmap + barplot for direct and indirect effect
     for effect_type in ('indirect', 'direct'):
         if effect_type == 'indirect':
             effect_head = mean_indirect_by_head
@@ -97,13 +96,28 @@ def save_figures(data, source, model_version, filter, suffix, k=10):
             effect_head = mean_direct_by_head
             effect_layer = mean_direct_by_layer
         fig = plt.figure(figsize=(4.3, 3.8))
-        ax1 = plt.subplot2grid((100, 85), (0, 0), colspan=60, rowspan=99)
-        ax2 = plt.subplot2grid((100, 85), (0, 62), colspan=14, rowspan=75)
+        if model_version == 'distilgpt2':
+            ax1 = plt.subplot2grid((100, 85), (0, 2), colspan=60, rowspan=99)
+            ax2 = plt.subplot2grid((100, 85), (17, 67), colspan=17, rowspan=41)
+        elif model_version == 'gpt2':
+            ax1 = plt.subplot2grid((100, 85), (0, 0), colspan=60, rowspan=99)
+            ax2 = plt.subplot2grid((100, 85), (0, 62), colspan=17, rowspan=75)
+        elif model_version == 'gpt2-medium':
+            ax1 = plt.subplot2grid((100, 85), (0, 12), colspan=40, rowspan=75)
+            ax2 = plt.subplot2grid((100, 85), (0, 54), colspan=17, rowspan=75)
+        elif model_version == 'gpt2-large':
+            ax1 = plt.subplot2grid((100, 85), (0, 16), colspan=32, rowspan=75)
+            ax2 = plt.subplot2grid((100, 85), (0, 51), colspan=17, rowspan=75)
         sns.heatmap(effect_head, ax=ax1, annot=annot, annot_kws={"size": 9}, fmt=".2f", square=True, cbar=False)
         # split axes of heatmap to put colorbar
         ax_divider = make_axes_locatable(ax1)
         # # define size and padding of axes for colorbar
-        cax = ax_divider.append_axes('bottom', size='7%', pad='25%')
+        if model_version == 'distilgpt2':
+            cax = ax_divider.append_axes('bottom', size='10%', pad='50%')
+        elif model_version in ('gpt2-large', 'gpt2-medium'):
+            cax = plt.subplot2grid((100, 85), (95, 10), colspan=45, rowspan=4)
+        else:
+            cax = ax_divider.append_axes('bottom', size='7%', pad='25%')
         # # make colorbar for heatmap.
         # # Heatmap returns an axes obj but you need to get a mappable obj (get_children)
         colorbar(ax1.get_children()[0], cax=cax, orientation='horizontal')
@@ -121,13 +135,12 @@ def save_figures(data, source, model_version, filter, suffix, k=10):
         ax2.spines['left'].set_visible(False)
         ax2.xaxis.set_ticks_position('bottom')
         ax2.axvline(0, linewidth=.85, color='black')
-        plt.figure(num=1, figsize=(14, 10))
+        # plt.figure(num=1, figsize=(14, 10))
         # plt.show()
-        plt.savefig(f'results/attention_intervention/heat_maps_with_bar_{effect_type}/{source}_{model_version}_{filter}_'
-                    f'{suffix}.png', format='png')
+        plt.savefig(
+            f'results/attention_intervention/heat_maps_with_bar_{effect_type}/{source}_{model_version}_{filter}_'
+            f'{suffix}.png', format='png')
         plt.close()
-
-
 
 def main():
     sns.set_context("paper")
@@ -135,6 +148,16 @@ def main():
 
     model_versions = ['distilgpt2', 'gpt2', 'gpt2-medium', 'gpt2-large']
     filters = ['filtered', 'unfiltered']
+
+    # For testing:
+    # model_version = 'distilgpt2'
+    # split = 'dev'
+    # filter = 'filtered'
+    # fname = f"winobias_data/attention_intervention_{model_version}_{filter}_{split}.json"
+    # with open(fname) as f:
+    #     data = json.load(f)
+    #     save_figures(data, 'winobias', model_version, filter, split)
+    # return
 
     # Process winobias
     for model_version in model_versions:
