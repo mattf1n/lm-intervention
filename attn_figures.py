@@ -47,7 +47,7 @@ def save_figures(data, source, model_version, filter, suffix, k=10):
     inds = range(k)
     p1 = plt.bar(inds, topk_direct, width)
     p2 = plt.bar(inds, topk_indirect, width, bottom=topk_direct)
-    plt.ylabel('Effect', size=12)
+    plt.ylabel('Effect', size=13)
     plt.title('Effects of top heads', fontsize=14)
     plt.xticks(inds, labels, size=12)
     plt.yticks(size=12)
@@ -56,7 +56,7 @@ def save_figures(data, source, model_version, filter, suffix, k=10):
     plt.legend((p3, p2[0], p1[0]), ('Total', 'Indirect', 'Direct'), loc='lower right', fontsize=14)
     plt.figure(num=1, figsize=(10, 15))
     plt.savefig(f'results/attention_intervention/stacked_bar_charts/{source}_{model_version}_{filter}_'
-                f'{suffix}.png', format='png')
+                f'{suffix}.pdf', format='pdf')
     plt.close()
 
     annot = False
@@ -67,11 +67,11 @@ def save_figures(data, source, model_version, filter, suffix, k=10):
             mean_effect = mean_indirect_by_head
         else:
             mean_effect = mean_direct_by_head
-        ax = sns.heatmap(mean_effect, annot=annot, annot_kws={"size": 9}, fmt=".2f", square=True)
+        ax = sns.heatmap(mean_effect, rasterized=True, annot=annot, annot_kws={"size": 9}, fmt=".2f", square=True)
         ax.set(xlabel='Head', ylabel='Layer', title=f'Mean {effect_type.capitalize()} Effect')
         plt.figure(num=1, figsize=(7, 5))
         plt.savefig(f'results/attention_intervention/heat_maps_{effect_type}/{source}_{model_version}_{filter}_'
-                    f'{suffix}.png', format='png')
+                    f'{suffix}.pdf', format='pdf')
         plt.close()
 
     # Plot layer-level bar chart for indirect and direct effects
@@ -85,7 +85,7 @@ def save_figures(data, source, model_version, filter, suffix, k=10):
         ax.set(ylabel='Layer', title=f'Mean {effect_type.capitalize()} Effect')
         # ax.axvline(0, linewidth=.85, color='black')
         plt.savefig(f'results/attention_intervention/layer_{effect_type}/{source}_{model_version}_{filter}_'
-                    f'{suffix}.png', format='png')
+                    f'{suffix}.pdf', format='pdf')
         plt.close()
 
     for effect_type in ('indirect', 'direct'):
@@ -101,14 +101,14 @@ def save_figures(data, source, model_version, filter, suffix, k=10):
             ax2 = plt.subplot2grid((100, 85), (17, 67), colspan=17, rowspan=41)
         elif model_version == 'gpt2':
             ax1 = plt.subplot2grid((100, 85), (0, 0), colspan=60, rowspan=99)
-            ax2 = plt.subplot2grid((100, 85), (0, 62), colspan=17, rowspan=75)
+            ax2 = plt.subplot2grid((100, 85), (0, 62), colspan=15, rowspan=75)
         elif model_version == 'gpt2-medium':
             ax1 = plt.subplot2grid((100, 85), (0, 12), colspan=40, rowspan=75)
             ax2 = plt.subplot2grid((100, 85), (0, 54), colspan=17, rowspan=75)
         elif model_version == 'gpt2-large':
             ax1 = plt.subplot2grid((100, 85), (0, 16), colspan=32, rowspan=75)
             ax2 = plt.subplot2grid((100, 85), (0, 51), colspan=17, rowspan=75)
-        sns.heatmap(effect_head, ax=ax1, annot=annot, annot_kws={"size": 9}, fmt=".2f", square=True, cbar=False)
+        sns.heatmap(effect_head, rasterized=True, ax=ax1, annot=annot, annot_kws={"size": 9}, fmt=".2f", square=True, cbar=False)
         # split axes of heatmap to put colorbar
         ax_divider = make_axes_locatable(ax1)
         # # define size and padding of axes for colorbar
@@ -120,7 +120,8 @@ def save_figures(data, source, model_version, filter, suffix, k=10):
             cax = ax_divider.append_axes('bottom', size='7%', pad='25%')
         # # make colorbar for heatmap.
         # # Heatmap returns an axes obj but you need to get a mappable obj (get_children)
-        colorbar(ax1.get_children()[0], cax=cax, orientation='horizontal')
+        cbar = colorbar(ax1.get_children()[0], cax=cax, orientation='horizontal')
+        cbar.solids.set_edgecolor("face")
         # # locate colorbar ticks
         cax.xaxis.set_ticks_position('bottom')
         ax1.set(xlabel='Head', ylabel='Layer', title='Head Effect')
@@ -139,7 +140,7 @@ def save_figures(data, source, model_version, filter, suffix, k=10):
         # plt.show()
         plt.savefig(
             f'results/attention_intervention/heat_maps_with_bar_{effect_type}/{source}_{model_version}_{filter}_'
-            f'{suffix}.png', format='png')
+            f'{suffix}.pdf', format='pdf')
         plt.close()
 
 def main():
