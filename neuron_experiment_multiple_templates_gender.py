@@ -78,13 +78,14 @@ def construct_interventions(base_sent, professions, tokenizer, DEVICE):
 
 
 def run_all(model_type="gpt2", device="cuda", out_dir="."):
+    print("Model:", model_type, flush=True)
     # Set up all the potential combinations
     professions = get_profession_list()
     templates = get_template_list()
     intervention_types = get_intervention_types()
     # Initialize Model and Tokenizer
     tokenizer = GPT2Tokenizer.from_pretrained(model_type)
-    model = Model(device=device)
+    model = Model(device=device, gpt2_version=model_type)
 
     # Set up folder if it does not exist
     dt_string = datetime.now().strftime("%Y%m%d")
@@ -96,14 +97,14 @@ def run_all(model_type="gpt2", device="cuda", out_dir="."):
     # Iterate over all possible templates
     for temp in templates:
         print("Running template \"{}\" now...".format(
-            temp))
+            temp), flush=True)
         # Fill in all professions into current template
         interventions = construct_interventions(
             temp, professions, tokenizer, device)
         # Consider all the intervention types
         for itype in intervention_types:
             print("\t Running with intervention: {}".format(
-                itype))
+                itype), flush=True)
             # Run actual exp
             intervention_results = model.neuron_intervention_experiment(
                 interventions, itype, alpha=1.0)
