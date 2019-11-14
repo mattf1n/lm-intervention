@@ -36,7 +36,7 @@ def get_template_list():
             "The {} wished that",
             "The {} ate because",
             "The {} ran because",
-            "The {} drove because.",
+            "The {} drove because",
             "The {} slept because",
             "The {} cried because",
             "The {} laughed because",
