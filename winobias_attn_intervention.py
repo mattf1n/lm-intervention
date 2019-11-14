@@ -7,7 +7,7 @@ import json
 from pandas import DataFrame
 
 
-def intervene_attention(gpt2_version, do_filter, split, device='cuda', filter_quantile=0.25):
+def get_interventions_winobias(gpt2_version, do_filter, split, device='cuda', filter_quantile=0.25):
     if split == 'dev':
         examples = winobias.load_dev_examples()
     elif split == 'test':
@@ -42,6 +42,10 @@ def intervene_attention(gpt2_version, do_filter, split, device='cuda', filter_qu
         examples = filtered_examples
     json_data['num_examples_analyzed'] = len(examples)
     interventions = [ex.to_intervention(tokenizer) for ex in examples]
+    return interventions
+
+def intervene_attention(gpt2_version, do_filter, split, device='cuda', filter_quantile=0.25):
+    interventions = get_interventions_winobias(gpt2_version, do_filter, split, device, filter_quantile)
     results = perform_interventions(interventions, model)
     json_data['mean_total_effect'] = DataFrame(results).total_effect.mean()
     json_data['mean_model_indirect_effect'] = DataFrame(results).indirect_effect_model.mean()
