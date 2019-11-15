@@ -88,60 +88,68 @@ def save_figures(data, source, model_version, filter, suffix, k=10):
                     f'{suffix}.pdf', format='pdf')
         plt.close()
 
-    for effect_type in ('indirect', 'direct'):
-        if effect_type == 'indirect':
-            effect_head = mean_indirect_by_head
-            effect_layer = mean_indirect_by_layer
-        else:
-            effect_head = mean_direct_by_head
-            effect_layer = mean_direct_by_layer
-        fig = plt.figure(figsize=(4.3, 3.8))
-        if model_version == 'distilgpt2':
-            ax1 = plt.subplot2grid((100, 85), (0, 2), colspan=60, rowspan=99)
-            ax2 = plt.subplot2grid((100, 85), (17, 67), colspan=17, rowspan=41)
-        elif model_version == 'gpt2':
-            ax1 = plt.subplot2grid((100, 85), (0, 0), colspan=60, rowspan=99)
-            ax2 = plt.subplot2grid((100, 85), (0, 62), colspan=15, rowspan=75)
-        elif model_version == 'gpt2-medium':
-            ax1 = plt.subplot2grid((100, 85), (0, 12), colspan=40, rowspan=75)
-            ax2 = plt.subplot2grid((100, 85), (0, 54), colspan=17, rowspan=75)
-        elif model_version == 'gpt2-large':
-            ax1 = plt.subplot2grid((100, 85), (0, 16), colspan=32, rowspan=75)
-            ax2 = plt.subplot2grid((100, 85), (0, 51), colspan=17, rowspan=75)
-        sns.heatmap(effect_head, rasterized=True, ax=ax1, annot=annot, annot_kws={"size": 9}, fmt=".2f", square=True, cbar=False)
-        # split axes of heatmap to put colorbar
-        ax_divider = make_axes_locatable(ax1)
-        # # define size and padding of axes for colorbar
-        if model_version == 'distilgpt2':
-            cax = ax_divider.append_axes('bottom', size='10%', pad='50%')
-        elif model_version in ('gpt2-large', 'gpt2-medium'):
-            cax = plt.subplot2grid((100, 85), (95, 10), colspan=45, rowspan=4)
-        else:
-            cax = ax_divider.append_axes('bottom', size='7%', pad='25%')
-        # # make colorbar for heatmap.
-        # # Heatmap returns an axes obj but you need to get a mappable obj (get_children)
-        cbar = colorbar(ax1.get_children()[0], cax=cax, orientation='horizontal')
-        cbar.solids.set_edgecolor("face")
-        # # locate colorbar ticks
-        cax.xaxis.set_ticks_position('bottom')
-        ax1.set(xlabel='Head', ylabel='Layer', title='Head Effect')
-        ax2.set(title=f'     Layer Effect')
-        # sns.set_style("ticks")
-        sns.barplot(x=effect_layer, ax=ax2, y=list(range(n_layers)), color="#4472C4", orient="h")
-        # ax2.set_frame_on(False)
-        ax2.set_yticklabels([])
-        ax2.spines['top'].set_visible(False)
-        ax2.spines['right'].set_visible(False)
-        # ax2.spines['bottom'].set_visible(False)
-        ax2.spines['left'].set_visible(False)
-        ax2.xaxis.set_ticks_position('bottom')
-        ax2.axvline(0, linewidth=.85, color='black')
-        # plt.figure(num=1, figsize=(14, 10))
-        # plt.show()
-        plt.savefig(
-            f'results/attention_intervention/heat_maps_with_bar_{effect_type}/{source}_{model_version}_{filter}_'
-            f'{suffix}.pdf', format='pdf')
-        plt.close()
+    for do_sort in False, True:
+        for effect_type in ('indirect', 'direct'):
+            if effect_type == 'indirect':
+                effect_head = mean_indirect_by_head
+                effect_layer = mean_indirect_by_layer
+                if do_sort:
+                    effect_head = -np.sort(-effect_head) # Sort indirect effects within each layer in descending order
+            else:
+                if do_sort:
+                    continue
+                effect_head = mean_direct_by_head
+                effect_layer = mean_direct_by_layer
+            fig = plt.figure(figsize=(4.3, 3.8))
+            if model_version == 'distilgpt2':
+                ax1 = plt.subplot2grid((100, 85), (0, 2), colspan=60, rowspan=99)
+                ax2 = plt.subplot2grid((100, 85), (17, 67), colspan=17, rowspan=41)
+            elif model_version == 'gpt2':
+                ax1 = plt.subplot2grid((100, 85), (0, 0), colspan=60, rowspan=99)
+                ax2 = plt.subplot2grid((100, 85), (0, 62), colspan=15, rowspan=75)
+            elif model_version == 'gpt2-medium':
+                ax1 = plt.subplot2grid((100, 85), (0, 12), colspan=40, rowspan=75)
+                ax2 = plt.subplot2grid((100, 85), (0, 54), colspan=17, rowspan=75)
+            elif model_version == 'gpt2-large':
+                ax1 = plt.subplot2grid((100, 85), (0, 16), colspan=32, rowspan=75)
+                ax2 = plt.subplot2grid((100, 85), (0, 51), colspan=17, rowspan=75)
+            heatmap = sns.heatmap(effect_head, rasterized=True, ax=ax1, annot=annot, annot_kws={"size": 9}, fmt=".2f",
+                        square=True, cbar=False)
+            if do_sort:
+                heatmap.axes.get_xaxis().set_ticks([])
+            # split axes of heatmap to put colorbar
+            ax_divider = make_axes_locatable(ax1)
+            # # define size and padding of axes for colorbar
+            if model_version == 'distilgpt2':
+                cax = ax_divider.append_axes('bottom', size='10%', pad='50%')
+            elif model_version in ('gpt2-large', 'gpt2-medium'):
+                cax = plt.subplot2grid((100, 85), (95, 10), colspan=45, rowspan=4)
+            else:
+                cax = ax_divider.append_axes('bottom', size='7%', pad='25%')
+            # # make colorbar for heatmap.
+            # # Heatmap returns an axes obj but you need to get a mappable obj (get_children)
+            cbar = colorbar(ax1.get_children()[0], cax=cax, orientation='horizontal')
+            cbar.solids.set_edgecolor("face")
+            # # locate colorbar ticks
+            cax.xaxis.set_ticks_position('bottom')
+            ax1.set(xlabel='Head', ylabel='Layer', title='Head Effect')
+            ax2.set(title=f'     Layer Effect')
+            # sns.set_style("ticks")
+            sns.barplot(x=effect_layer, ax=ax2, y=list(range(n_layers)), color="#4472C4", orient="h")
+            # ax2.set_frame_on(False)
+            ax2.set_yticklabels([])
+            ax2.spines['top'].set_visible(False)
+            ax2.spines['right'].set_visible(False)
+            # ax2.spines['bottom'].set_visible(False)
+            ax2.spines['left'].set_visible(False)
+            ax2.xaxis.set_ticks_position('bottom')
+            ax2.axvline(0, linewidth=.85, color='black')
+            # plt.figure(num=1, figsize=(14, 10))
+            # plt.show()
+            fname = f'results/attention_intervention/heat_maps_with_bar_{effect_type}{"_sorted" if do_sort else ""}/'\
+                    f'{source}_{model_version}_{filter}_{suffix}.pdf'
+            plt.savefig(fname, format='pdf')
+            plt.close()
 
 def main():
     sns.set_context("paper")
@@ -151,6 +159,7 @@ def main():
     filters = ['filtered', 'unfiltered']
 
     # For testing:
+    #
     # model_version = 'distilgpt2'
     # split = 'dev'
     # filter = 'filtered'
