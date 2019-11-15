@@ -103,6 +103,13 @@ class Model():
         representation = {}
         with torch.no_grad():
             # construct all the hooks
+            # word embeddings will be layer -1
+            handles.append(self.model.transformer.wte.register_forward_hook(
+                    partial(extract_representation_hook,
+                            position=position,
+                            representations=representation,
+                            layer=-1)))
+            # hidden layers
             for layer in range(self.num_layers):
                 handles.append(self.model.transformer.h[layer]\
                                    .mlp.register_forward_hook(
@@ -212,14 +219,23 @@ class Model():
           for n in neurons:
             n_list.append([n[i] for i in neuron_loc])
           intervention_rep = alpha * rep[layer][n_list]
-          mlp_intervention_handle = self.model.transformer.h[layer]\
-                                        .mlp.register_forward_hook(
-              partial(intervention_hook,
-                      position=position,
-                      neurons=n_list,
-                      intervention=intervention_rep,
-                      intervention_type=intervention_type))
-          handle_list.append(mlp_intervention_handle)
+          if layer == -1:
+              wte_intervention_handle = self.model.transformer.wte.register_forward_hook(
+                  partial(intervention_hook,
+                          position=position,
+                          neurons=n_list,
+                          intervention=intervention_rep,
+                          intervention_type=intervention_type))
+              handle_list.append(wte_intervention_handle)
+          else:
+              mlp_intervention_handle = self.model.transformer.h[layer]\
+                                            .mlp.register_forward_hook(
+                  partial(intervention_hook,
+                          position=position,
+                          neurons=n_list,
+                          intervention=intervention_rep,
+                          intervention_type=intervention_type))
+              handle_list.append(mlp_intervention_handle)
         new_probabilities = self.get_probabilities_for_examples(
             context,
             outputs)
@@ -293,7 +309,7 @@ class Model():
 
     def neuron_intervention_experiment(self,
                                        word2intervention,
-                                       intervention_type, layers_to_adj, neurons_to_adj,
+                                       intervention_type, layers_to_adj=[], neurons_to_adj=[],
                                        alpha=1, intervention_loc='all'):
         """
         run multiple intervention experiments
@@ -309,7 +325,7 @@ class Model():
 
     def neuron_intervention_single_experiment(self,
                                               intervention,
-                                              intervention_type, layers_to_adj, neurons_to_adj,
+                                              intervention_type, layers_to_adj=[], neurons_to_adj=[],
                                               alpha=100,
                                               bsize=800, intervention_loc='all'):
         """
@@ -380,10 +396,10 @@ class Model():
                 intervention.candidates_tok)[0]
             # Now intervening on potentially biased example
             if intervention_loc == 'all':
-              candidate1_probs = torch.zeros((self.num_layers, self.num_neurons))
-              candidate2_probs = torch.zeros((self.num_layers, self.num_neurons))
+              candidate1_probs = torch.zeros((self.num_layers + 1, self.num_neurons))
+              candidate2_probs = torch.zeros((self.num_layers + 1, self.num_neurons))
 
-              for layer in range(self.num_layers):
+              for layer in range(-1, self.num_layers):
                 for neurons in batch(range(self.num_neurons), bsize):
                     neurons_to_search = [[i] + neurons_to_adj for i in neurons]
                     layers_to_search = [layer] + layers_to_adj
@@ -398,8 +414,8 @@ class Model():
                         intervention_type=replace_or_diff,
                         alpha=alpha)
                     for neuron, (p1, p2) in zip(neurons, probs):
-                        candidate1_probs[layer][neuron] = p1
-                        candidate2_probs[layer][neuron] = p2
+                        candidate1_probs[layer + 1][neuron] = p1
+                        candidate2_probs[layer + 1][neuron] = p2
             elif intervention_loc == 'layer':
               layers_to_search = (len(neurons_to_adj) + 1)*[layers_to_adj]
               candidate1_probs = torch.zeros((1, self.num_neurons))
