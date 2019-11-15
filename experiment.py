@@ -100,7 +100,7 @@ class Model():
         with torch.no_grad():
             # construct all the hooks
             for layer in range(self.num_layers):
-                handles.append(self.model.transformer.h[0]\
+                handles.append(self.model.transformer.h[layer]\
                                    .mlp.register_forward_hook(
                     partial(extract_representation_hook,
                             position=position,
