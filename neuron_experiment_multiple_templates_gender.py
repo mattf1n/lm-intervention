@@ -48,8 +48,8 @@ def get_template_list():
 
 
 def get_intervention_types():
-    return ['man_minus_woman',
-            'woman_minus_man',
+    return [#'man_minus_woman',
+            #'woman_minus_man',
             'man_direct',
             'man_indirect',
             'woman_direct',
