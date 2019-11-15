@@ -1,0 +1,11 @@
+\hline
+Model & Param & TE (BLS) & TE (Bergsma) \\
+\hline
+Distill-GPT2 & -37\% &  0.081 & 0.075 \\
+\hline
+GPT2-small & 124M &  0.103 & 0.135 \\
+\hline
+GPT2-medium & 355M &  0.322 & 0.384 \\
+\hline
+GPT2-large & 774M &  0.364 & 0.350 \\
+\hline

@@ -7,15 +7,14 @@ import json
 from pandas import DataFrame
 
 
-def intervene_attention(gpt2_version, do_filter, split, device='cuda', filter_quantile=0.25):
+def get_interventions_winobias(gpt2_version, do_filter, split, model, tokenizer,
+                                device='cuda', filter_quantile=0.25):
     if split == 'dev':
         examples = winobias.load_dev_examples()
     elif split == 'test':
         examples = winobias.load_test_examples()
     else:
         raise ValueError(f"Invalid split: {split}")
-    model = Model(output_attentions=True, gpt2_version=gpt2_version, device=device)
-    tokenizer = GPT2Tokenizer.from_pretrained(gpt2_version)
     json_data = {'model_version': gpt2_version,
             'do_filter': do_filter,
             'split': split,
@@ -42,8 +41,18 @@ def intervene_attention(gpt2_version, do_filter, split, device='cuda', filter_qu
         examples = filtered_examples
     json_data['num_examples_analyzed'] = len(examples)
     interventions = [ex.to_intervention(tokenizer) for ex in examples]
+    return interventions, json_data
+
+def intervene_attention(gpt2_version, do_filter, split, device='cuda', filter_quantile=0.25):
+    model = Model(output_attentions=True, gpt2_version=gpt2_version, device=device)
+    tokenizer = GPT2Tokenizer.from_pretrained(gpt2_version)
+
+    interventions, json_data = get_interventions_winobias(gpt2_version, do_filter, split, model, tokenizer,
+                                                            device, filter_quantile)
     results = perform_interventions(interventions, model)
     json_data['mean_total_effect'] = DataFrame(results).total_effect.mean()
+    json_data['mean_model_indirect_effect'] = DataFrame(results).indirect_effect_model.mean()
+    json_data['mean_model_direct_effect'] = DataFrame(results).direct_effect_model.mean()
     filter_name = 'filtered' if do_filter else 'unfiltered'
     fname = f"winobias_data/attention_intervention_{gpt2_version}_{filter_name}_{split}.json"
     json_data['results'] = results

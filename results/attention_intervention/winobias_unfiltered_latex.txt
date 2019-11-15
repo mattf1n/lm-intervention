@@ -1,0 +1,11 @@
+\hline
+Model & Param & TE (dev) & TE (test) \\
+\hline
+Distill-GPT2 & -37\% &  0.012 & 0.023 \\
+\hline
+GPT2-small & 124M &  0.115 & 0.098 \\
+\hline
+GPT2-medium & 355M &  0.474 & 0.311 \\
+\hline
+GPT2-large & 774M &  0.427 & 0.238 \\
+\hline
