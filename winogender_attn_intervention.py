@@ -6,11 +6,10 @@ from transformers import GPT2Tokenizer
 import json
 from pandas import DataFrame
 
-
-def intervene_attention(gpt2_version, do_filter, stat, device='cuda', filter_quantile=0.25):
+def get_interventions_winogender(gpt2_version, do_filter, stat, model, tokenizer,
+                                device='cuda', filter_quantile=0.25):
     examples = winogender.load_examples()
-    model = Model(output_attentions=True, gpt2_version=gpt2_version, device=device)
-    tokenizer = GPT2Tokenizer.from_pretrained(gpt2_version)
+    
     json_data = {'model_version': gpt2_version,
             'do_filter': do_filter,
             'stat': stat,
@@ -36,8 +35,18 @@ def intervene_attention(gpt2_version, do_filter, stat, device='cuda', filter_qua
         examples = filtered_examples
     json_data['num_examples_analyzed'] = len(examples)
     interventions = [ex.to_intervention(tokenizer, stat) for ex in examples]
+    return interventions, json_data
+
+def intervene_attention(gpt2_version, do_filter, stat, device='cuda', filter_quantile=0.25):
+    model = Model(output_attentions=True, gpt2_version=gpt2_version, device=device)
+    tokenizer = GPT2Tokenizer.from_pretrained(gpt2_version)
+
+    interventions, json_data = get_interventions_winogender(gpt2_version, do_filter, stat, model, tokenizer,
+                                                            device, filter_quantile)
     results = perform_interventions(interventions, model)
     json_data['mean_total_effect'] = DataFrame(results).total_effect.mean()
+    json_data['mean_model_indirect_effect'] = DataFrame(results).indirect_effect_model.mean()
+    json_data['mean_model_direct_effect'] = DataFrame(results).direct_effect_model.mean()
     filter_name = 'filtered' if do_filter else 'unfiltered'
     fname = f"winogender_data/attention_intervention_{stat}_{gpt2_version}_{filter_name}.json"
     json_data['results'] = results
