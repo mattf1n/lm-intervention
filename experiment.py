@@ -68,6 +68,7 @@ class Model():
     def __init__(self,
                  device='cpu',
                  output_attentions=False,
+                 random_weights=False,
                  gpt2_version='gpt2'):
         super()
         self.device = device
@@ -76,6 +77,9 @@ class Model():
             output_attentions=output_attentions)
         self.model.eval()
         self.model.to(device)
+        if random_weights:
+            print('Randomizing weights')
+            self.model.apply(self.model.init_weights)
 
         # Options
         self.top_k = 5
