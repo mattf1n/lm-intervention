@@ -68,6 +68,7 @@ class Model():
     def __init__(self,
                  device='cpu',
                  output_attentions=False,
+                 random_weights=False,
                  gpt2_version='gpt2'):
         super()
         self.device = device
@@ -76,6 +77,9 @@ class Model():
             output_attentions=output_attentions)
         self.model.eval()
         self.model.to(device)
+        if random_weights:
+            print('Randomizing weights')
+            self.model.init_weights()
 
         # Options
         self.top_k = 5
@@ -99,6 +103,13 @@ class Model():
         representation = {}
         with torch.no_grad():
             # construct all the hooks
+            # word embeddings will be layer -1
+            handles.append(self.model.transformer.wte.register_forward_hook(
+                    partial(extract_representation_hook,
+                            position=position,
+                            representations=representation,
+                            layer=-1)))
+            # hidden layers
             for layer in range(self.num_layers):
                 handles.append(self.model.transformer.h[layer]\
                                    .mlp.register_forward_hook(
@@ -163,7 +174,7 @@ class Model():
                             context,
                             outputs,
                             rep,
-                            layer,
+                            layers,
                             neurons,
                             position,
                             intervention_type='diff',
@@ -177,12 +188,11 @@ class Model():
                               intervention,
                               intervention_type):
             # Get the neurons to intervene on
-            gather_neurons = [[n] for n in neurons]
-            gather_neurons = torch.LongTensor(gather_neurons).to(self.device)
+            neurons = torch.LongTensor(neurons).to(self.device)
             # First grab the position across batch
             # Then, for each element, get correct index w/ gather
             base = output[:, position, :].gather(
-                1, gather_neurons)
+                1, neurons)
             intervention_view = intervention.view_as(base)
 
             if intervention_type == 'replace':
@@ -199,21 +209,38 @@ class Model():
             # Then take values from base and scatter
             output.masked_scatter_(scatter_mask, base.flatten())
 
-        intervention_rep = alpha * rep[layer][neurons]
         # Set up the context as batch
         batch_size = len(neurons)
         context = context.unsqueeze(0).repeat(batch_size, 1)
-        mlp_intervention_handle = self.model.transformer.h[layer]\
-                                      .mlp.register_forward_hook(
-            partial(intervention_hook,
-                    position=position,
-                    neurons=neurons,
-                    intervention=intervention_rep,
-                    intervention_type=intervention_type))
+        handle_list = []
+        for layer in set(layers):
+          neuron_loc = np.where(np.array(layers) == layer)[0]
+          n_list = []
+          for n in neurons:
+            n_list.append([n[i] for i in neuron_loc])
+          intervention_rep = alpha * rep[layer][n_list]
+          if layer == -1:
+              wte_intervention_handle = self.model.transformer.wte.register_forward_hook(
+                  partial(intervention_hook,
+                          position=position,
+                          neurons=n_list,
+                          intervention=intervention_rep,
+                          intervention_type=intervention_type))
+              handle_list.append(wte_intervention_handle)
+          else:
+              mlp_intervention_handle = self.model.transformer.h[layer]\
+                                            .mlp.register_forward_hook(
+                  partial(intervention_hook,
+                          position=position,
+                          neurons=n_list,
+                          intervention=intervention_rep,
+                          intervention_type=intervention_type))
+              handle_list.append(mlp_intervention_handle)
         new_probabilities = self.get_probabilities_for_examples(
             context,
             outputs)
-        mlp_intervention_handle.remove()
+        for hndle in handle_list:
+          hndle.remove()
         return new_probabilities
 
     def head_pruning_intervention(self,
@@ -282,8 +309,8 @@ class Model():
 
     def neuron_intervention_experiment(self,
                                        word2intervention,
-                                       intervention_type,
-                                       alpha=1):
+                                       intervention_type, layers_to_adj=[], neurons_to_adj=[],
+                                       alpha=1, intervention_loc='all'):
         """
         run multiple intervention experiments
         """
@@ -291,15 +318,16 @@ class Model():
         word2intervention_results = {}
         for word in tqdm(word2intervention, desc='words'):
             word2intervention_results[word] = self.neuron_intervention_single_experiment(
-                word2intervention[word], intervention_type, alpha)
+                word2intervention[word], intervention_type, layers_to_adj, neurons_to_adj, 
+                alpha, intervention_loc=intervention_loc)
 
         return word2intervention_results
 
     def neuron_intervention_single_experiment(self,
                                               intervention,
-                                              intervention_type,
+                                              intervention_type, layers_to_adj=[], neurons_to_adj=[],
                                               alpha=100,
-                                              bsize=400):
+                                              bsize=800, intervention_loc='all'):
         """
         run one full neuron intervention experiment
         """
@@ -366,29 +394,62 @@ class Model():
             candidate1_alt2_prob, candidate2_alt2_prob = self.get_probabilities_for_examples(
                 intervention.base_strings_tok[2].unsqueeze(0),
                 intervention.candidates_tok)[0]
-            # print("base", candidate1_base_prob, candidate2_base_prob)
-            # print("man", candidate1_alt1_prob, candidate2_alt1_prob)
-            # print("woman", candidate1_alt2_prob, candidate2_alt2_prob)
-
             # Now intervening on potentially biased example
+            if intervention_loc == 'all':
+              candidate1_probs = torch.zeros((self.num_layers + 1, self.num_neurons))
+              candidate2_probs = torch.zeros((self.num_layers + 1, self.num_neurons))
 
-            candidate1_probs = torch.zeros((self.num_layers, self.num_neurons))
-            candidate2_probs = torch.zeros((self.num_layers, self.num_neurons))
-            # Intervene at every possible neuron
-            for layer in range(self.num_layers):
+              for layer in range(-1, self.num_layers):
                 for neurons in batch(range(self.num_neurons), bsize):
+                    neurons_to_search = [[i] + neurons_to_adj for i in neurons]
+                    layers_to_search = [layer] + layers_to_adj
+
                     probs = self.neuron_intervention(
                         context=context,
                         outputs=intervention.candidates_tok,
                         rep=rep,
-                        layer=layer,
-                        neurons=neurons,
+                        layers=layers_to_search,
+                        neurons=neurons_to_search,
                         position=intervention.position,
                         intervention_type=replace_or_diff,
                         alpha=alpha)
                     for neuron, (p1, p2) in zip(neurons, probs):
-                        candidate1_probs[layer][neuron] = p1
-                        candidate2_probs[layer][neuron] = p2
+                        candidate1_probs[layer + 1][neuron] = p1
+                        candidate2_probs[layer + 1][neuron] = p2
+            elif intervention_loc == 'layer':
+              layers_to_search = (len(neurons_to_adj) + 1)*[layers_to_adj]
+              candidate1_probs = torch.zeros((1, self.num_neurons))
+              candidate2_probs = torch.zeros((1, self.num_neurons))
+
+              for neurons in batch(range(self.num_neurons), bsize):
+                neurons_to_search = [[i] + neurons_to_adj for i in neurons]
+
+                probs = self.neuron_intervention(
+                    context=context,
+                    outputs=intervention.candidates_tok,
+                    rep=rep,
+                    layers=layers_to_search,
+                    neurons=neurons_to_search,
+                    position=intervention.position,
+                    intervention_type=replace_or_diff,
+                    alpha=alpha)
+                for neuron, (p1, p2) in zip(neurons, probs):
+                    candidate1_probs[0][neuron] = p1
+                    candidate2_probs[0][neuron] = p2
+            else: 
+              probs = self.neuron_intervention(
+                        context=context,
+                        outputs=intervention.candidates_tok,
+                        rep=rep,
+                        layers=layers_to_adj,
+                        neurons=neurons_to_adj,
+                        position=intervention.position,
+                        intervention_type=replace_or_diff,
+                        alpha=alpha)
+              for neuron, (p1, p2) in zip(neurons_to_adj, probs):
+                  candidate1_probs = p1
+                  candidate2_probs = p2
+
 
         return (candidate1_base_prob, candidate2_base_prob,
                 candidate1_alt1_prob, candidate2_alt1_prob,
@@ -469,6 +530,100 @@ class Model():
 
         return candidate1_probs_head, candidate2_probs_head, candidate1_probs_layer, candidate2_probs_layer,\
             candidate1_probs_model, candidate2_probs_model
+
+    def attention_intervention_single_experiment(self, intervention, effect, layers_to_adj, heads_to_adj, search):
+        """
+        Run one full attention intervention experiment
+        measuring indirect or direct effect.
+        """
+        # E.g. The doctor asked the nurse a question. He
+        x = intervention.base_strings_tok[0]
+        # E.g. The doctor asked the nurse a question. She
+        x_alt = intervention.base_strings_tok[1]
+
+        if effect == 'indirect':
+            input = x_alt  # Get attention for x_alt
+        elif effect == 'direct':
+            input = x  # Get attention for x
+        else:
+            raise ValueError(f"Invalid effect: {effect}")
+        batch = torch.tensor(input).unsqueeze(0).to(self.device)
+        attention_override = self.model(batch)[-1]
+
+        batch_size = 1
+        seq_len = len(x)
+        seq_len_alt = len(x_alt)
+        assert seq_len == seq_len_alt
+        assert len(attention_override) == self.num_layers
+        assert attention_override[0].shape == (batch_size, self.num_heads, seq_len, seq_len)
+
+        with torch.no_grad():
+            if search:
+                candidate1_probs_head = torch.zeros((self.num_layers, self.num_heads))
+                candidate2_probs_head = torch.zeros((self.num_layers, self.num_heads))
+
+            if effect == 'indirect':
+                context = x
+            else:
+                context = x_alt
+
+            model_attn_override_data = []
+            for layer in range(self.num_layers):
+                if layer in layers_to_adj:
+                    layer_attention_override = attention_override[layer]
+
+                    layer_ind = np.where(layers_to_adj == layer)[0]
+                    heads_in_layer = heads_to_adj[layer_ind]
+                    attention_override_mask = torch.zeros_like(layer_attention_override, dtype=torch.uint8)
+                    # set multiple heads in layer to 1
+                    for head in heads_in_layer:
+                        attention_override_mask[0][head] = 1 # Set mask to 1 for single head only
+                    # get head mask
+                    head_attn_override_data = [{
+                        'layer': layer,
+                        'attention_override': layer_attention_override,
+                        'attention_override_mask': attention_override_mask
+                    }]
+                    # should be the same length as the number of unique layers to adj
+                    model_attn_override_data.extend(head_attn_override_data)
+
+            # basically generate the mask for the layers_to_adj and heads_to_adj
+            if search:
+                for layer in range(self.num_layers):
+                  layer_attention_override = attention_override[layer]
+                  layer_ind = np.where(layers_to_adj == layer)[0]
+                  heads_in_layer = heads_to_adj[layer_ind]
+
+                  for head in range(self.num_heads):
+                      model_attn_override_data_search = []
+                      attention_override_mask = torch.zeros_like(layer_attention_override, dtype=torch.uint8)
+                      heads_list = [head]
+                      if len(heads_in_layer) > 0:
+                        heads_list.extend(heads_in_layer)
+                      for h in (heads_list):
+                          attention_override_mask[0][h] = 1 # Set mask to 1 for single head only
+                      head_attn_override_data = [{
+                          'layer': layer,
+                          'attention_override': layer_attention_override,
+                          'attention_override_mask': attention_override_mask
+                      }]
+                      model_attn_override_data_search.extend(head_attn_override_data)
+                      for override in model_attn_override_data:
+                          if override['layer'] != layer:
+                              model_attn_override_data_search.append(override)
+                              
+                      candidate1_probs_head[layer][head], candidate2_probs_head[layer][head] = self.attention_intervention(
+                          context=context,
+                          outputs=intervention.candidates_tok,
+                          attn_override_data=model_attn_override_data_search)
+
+            else:
+              candidate1_probs_head, candidate2_probs_head = self.attention_intervention(
+                  context=context,
+                  outputs=intervention.candidates_tok,
+                  attn_override_data=model_attn_override_data)
+
+        return candidate1_probs_head, candidate2_probs_head
 
 
 def main():

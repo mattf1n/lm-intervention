@@ -48,8 +48,8 @@ def get_template_list():
 
 
 def get_intervention_types():
-    return ['man_minus_woman',
-            'woman_minus_man',
+    return [#'man_minus_woman',
+            #'woman_minus_man',
             'man_direct',
             'man_indirect',
             'woman_direct',
@@ -77,7 +77,7 @@ def construct_interventions(base_sent, professions, tokenizer, DEVICE):
     return interventions
 
 
-def run_all(model_type="gpt2", device="cuda", out_dir="."):
+def run_all(model_type="gpt2", device="cuda", out_dir=".", random_weights=False):
     print("Model:", model_type, flush=True)
     # Set up all the potential combinations
     professions = get_profession_list()
@@ -85,12 +85,14 @@ def run_all(model_type="gpt2", device="cuda", out_dir="."):
     intervention_types = get_intervention_types()
     # Initialize Model and Tokenizer
     tokenizer = GPT2Tokenizer.from_pretrained(model_type)
-    model = Model(device=device, gpt2_version=model_type)
+    model = Model(device=device, gpt2_version=model_type, random_weights=random_weights)
 
     # Set up folder if it does not exist
     dt_string = datetime.now().strftime("%Y%m%d")
     folder_name = dt_string+"_neuron_intervention"
     base_path = os.path.join(out_dir, "results", folder_name)
+    if random_weights:
+        base_path = os.path.join(base_path, "random")
     if not os.path.exists(base_path):
         os.makedirs(base_path)
 
@@ -119,9 +121,13 @@ def run_all(model_type="gpt2", device="cuda", out_dir="."):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 4:
-        print("USAGE: python ", sys.argv[0], "<model> <device> <out_dir>")
+    if not (len(sys.argv) == 4 or len(sys.argv) == 5):
+        print("USAGE: python ", sys.argv[0], "<model> <device> <out_dir> [<random_weights>]")
     model = sys.argv[1] # cpu vs cuda
     device = sys.argv[2] # gpt2, gpt2-medium, gpt2-large
     out_dir = sys.argv[3] # dir to write results
-    run_all(model, device, out_dir)
+
+    random_weights = False
+    if sys.argv[4] and sys.argv[4] == 'true':
+        random_weights = True
+    run_all(model, device, out_dir, random_weights)
