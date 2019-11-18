@@ -79,7 +79,7 @@ class Model():
         self.model.to(device)
         if random_weights:
             print('Randomizing weights')
-            self.model.apply(self.model.init_weights)
+            self.model.init_weights()
 
         # Options
         self.top_k = 5
