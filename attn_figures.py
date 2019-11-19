@@ -6,7 +6,7 @@ import numpy as np
 from attention_utils import topk_indices
 from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
 from mpl_toolkits.axes_grid1.colorbar import colorbar
-
+import os
 
 def save_figures(data, source, model_version, filter, suffix, k=10):
 
@@ -113,16 +113,28 @@ def save_figures(data, source, model_version, filter, suffix, k=10):
             elif model_version == 'gpt2-large':
                 ax1 = plt.subplot2grid((100, 85), (0, 16), colspan=32, rowspan=75)
                 ax2 = plt.subplot2grid((100, 85), (0, 51), colspan=17, rowspan=75)
+            elif model_version == 'gpt2-xl':
+                ax1 = plt.subplot2grid((100, 85), (0, 16), colspan=32, rowspan=75)
+                ax2 = plt.subplot2grid((100, 85), (0, 51), colspan=17, rowspan=75)
             heatmap = sns.heatmap(effect_head, rasterized=True, ax=ax1, annot=annot, annot_kws={"size": 9}, fmt=".2f",
                         square=True, cbar=False)
             if do_sort:
                 heatmap.axes.get_xaxis().set_ticks([])
+            else:
+                if model_version == 'gpt2-xl':
+                    every_nth = 2
+                    for n, label in enumerate(ax1.xaxis.get_ticklabels()):
+                        if n % every_nth != 0:
+                            label.set_visible(False)
+                    for n, label in enumerate(ax1.yaxis.get_ticklabels()):
+                        if n % every_nth != 0:
+                            label.set_visible(False)
             # split axes of heatmap to put colorbar
             ax_divider = make_axes_locatable(ax1)
             # # define size and padding of axes for colorbar
             if model_version == 'distilgpt2':
                 cax = ax_divider.append_axes('bottom', size='10%', pad='50%')
-            elif model_version in ('gpt2-large', 'gpt2-medium'):
+            elif model_version in ('gpt2-xl', 'gpt2-large', 'gpt2-medium'):
                 cax = plt.subplot2grid((100, 85), (95, 10), colspan=45, rowspan=4)
             else:
                 cax = ax_divider.append_axes('bottom', size='7%', pad='25%')
@@ -155,12 +167,12 @@ def main():
     sns.set_context("paper")
     sns.set_style("white")
 
-    model_versions = ['distilgpt2', 'gpt2', 'gpt2-medium', 'gpt2-large']
+    model_versions = ['distilgpt2', 'gpt2', 'gpt2-medium', 'gpt2-large', 'gpt2-xl']
     filters = ['filtered', 'unfiltered']
 
     # For testing:
     #
-    # model_version = 'distilgpt2'
+    # model_version = 'gpt2-xl'
     # split = 'dev'
     # filter = 'filtered'
     # fname = f"winobias_data/attention_intervention_{model_version}_{filter}_{split}.json"
@@ -174,6 +186,9 @@ def main():
         for filter in filters:
             for split in ['dev', 'test']:
                 fname =  f"winobias_data/attention_intervention_{model_version}_{filter}_{split}.json"
+                if not os.path.exists(fname):
+                    print('File does not exist:', fname)
+                    continue
                 with open(fname) as f:
                     data = json.load(f)
                     save_figures(data, 'winobias', model_version, filter, split)
