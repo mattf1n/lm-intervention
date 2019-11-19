@@ -163,6 +163,8 @@ if __name__ == '__main__':
 	ap.add_argument('--k', type=int, default=25)
 	ap.add_argument('--data', type=str, choices=['winobias', 'winogender'], default='winogender')
 
+	args = ap.parse_args()
+
 	model_type_list = ['distilgpt2', 'gpt2-medium']
 	if args.data == 'winobias':
 		data_ext = 'wb'
