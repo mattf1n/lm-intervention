@@ -43,8 +43,8 @@ def get_interventions_winobias(gpt2_version, do_filter, split, model, tokenizer,
     interventions = [ex.to_intervention(tokenizer) for ex in examples]
     return interventions, json_data
 
-def intervene_attention(gpt2_version, do_filter, split, device='cuda', filter_quantile=0.25):
-    model = Model(output_attentions=True, gpt2_version=gpt2_version, device=device)
+def intervene_attention(gpt2_version, do_filter, split, device='cuda', filter_quantile=0.25, random_weights=False):
+    model = Model(output_attentions=True, gpt2_version=gpt2_version, device=device, random_weights=random_weights)
     tokenizer = GPT2Tokenizer.from_pretrained(gpt2_version)
 
     interventions, json_data = get_interventions_winobias(gpt2_version, do_filter, split, model, tokenizer,
@@ -54,6 +54,8 @@ def intervene_attention(gpt2_version, do_filter, split, device='cuda', filter_qu
     json_data['mean_model_indirect_effect'] = DataFrame(results).indirect_effect_model.mean()
     json_data['mean_model_direct_effect'] = DataFrame(results).direct_effect_model.mean()
     filter_name = 'filtered' if do_filter else 'unfiltered'
+    if random_weights:
+        gpt2_version += '_random'
     fname = f"winobias_data/attention_intervention_{gpt2_version}_{filter_name}_{split}.json"
     json_data['results'] = results
     with open(fname, 'w') as f:
