@@ -2,12 +2,13 @@ import json
 
 def main():
 
-    models = ['distilgpt2', 'gpt2', 'gpt2-medium', 'gpt2-large']
+    models = ['distilgpt2', 'gpt2', 'gpt2-medium', 'gpt2-large', 'gpt2-xl']
     model_to_name = {
-        'distilgpt2': 'GPT2-distill',
+        'distilgpt2': 'GPT2-distil',
         'gpt2': 'GPT2-small',
         'gpt2-medium': 'GPT2-medium',
-        'gpt2-large': 'GPT2-large'
+        'gpt2-large': 'GPT2-large',
+        'gpt2-xl': 'GPT2-XL'
     }
     filters = ['filtered', 'unfiltered']
     stats = ['bergsma', 'bls']

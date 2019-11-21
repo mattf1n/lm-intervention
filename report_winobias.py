@@ -10,7 +10,7 @@ def main():
               'num_examples_analyzed']
     t = PrettyTable(fields)
     for filter in ['filtered', 'unfiltered']:
-        for model_version in ['distilgpt2', 'gpt2', 'gpt2-medium', 'gpt2-large', 'gpt2-xl']:
+        for model_version in ['distilgpt2', 'gpt2', 'gpt2-medium', 'gpt2-large', 'gpt2-xl', 'gpt2_random']:
             for split in ['dev', 'test']:
                 fname =  f"winobias_data/attention_intervention_{model_version}_{filter}_{split}.json"
                 if not os.path.exists(fname):
