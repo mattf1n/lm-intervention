@@ -49,7 +49,7 @@ def convert_results_to_pd(interventions, intervention_results, layer_fixed=None,
                       # intervention probs
                       'candidate1_prob': float(c1_prob),
                       'candidate2_prob': float(c2_prob),
-                      'layer': layer - 1,
+                      'layer': layer,
                       'neuron': neuron})
                   results.append(results_single)
         # we have results for all neurons in one layer
