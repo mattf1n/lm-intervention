@@ -23,12 +23,12 @@ def get_profession_list():
     return word_list
 
 
-def get_template_list():
+def get_template_list(indices=None):
     # Get list of all considered templates
     # "That" sentences are ours
     # "Because" sentences are a subset
     # from https://arxiv.org/pdf/1807.11714.pdf (Lu et al.)
-    return ["The {} said that",
+    templates = ["The {} said that",
             "The {} yelled that",
             "The {} whispered that",
             "The {} wanted that",
@@ -45,6 +45,12 @@ def get_template_list():
             "The {} was fired because",
             "The {} was promoted because",
             "The {} yelled because"]
+    if indices:
+        subset_templates = [templates[i-1] for i in indices]
+        print("subset of templates:", subset_templates)
+        return subset_templates
+        
+    return templates
 
 
 def get_intervention_types():
@@ -77,11 +83,11 @@ def construct_interventions(base_sent, professions, tokenizer, DEVICE):
     return interventions
 
 
-def run_all(model_type="gpt2", device="cuda", out_dir=".", random_weights=False):
+def run_all(model_type="gpt2", device="cuda", out_dir=".", random_weights=False, template_indices=None):
     print("Model:", model_type, flush=True)
     # Set up all the potential combinations
     professions = get_profession_list()
-    templates = get_template_list()
+    templates = get_template_list(template_indices)
     intervention_types = get_intervention_types()
     # Initialize Model and Tokenizer
     tokenizer = GPT2Tokenizer.from_pretrained(model_type)
@@ -121,8 +127,9 @@ def run_all(model_type="gpt2", device="cuda", out_dir=".", random_weights=False)
 
 
 if __name__ == "__main__":
-    if not (len(sys.argv) == 4 or len(sys.argv) == 5):
-        print("USAGE: python ", sys.argv[0], "<model> <device> <out_dir> [<random_weights>]")
+    if not (len(sys.argv) == 4 or len(sys.argv) == 5 or len(sys.argv) == 6):
+        print("USAGE: python ", sys.argv[0], "<model> <device> <out_dir> [<random_weights>] [<template_indices>]")
+        print('<template_indices> is an optional comma-separated list of indices of templates to use, 1-indexed')
     model = sys.argv[1] # cpu vs cuda
     device = sys.argv[2] # gpt2, gpt2-medium, gpt2-large
     out_dir = sys.argv[3] # dir to write results
@@ -130,4 +137,9 @@ if __name__ == "__main__":
     random_weights = False
     if sys.argv[4] and sys.argv[4] == 'true':
         random_weights = True
-    run_all(model, device, out_dir, random_weights)
+
+    template_indices = None
+    if sys.argv[5]:
+        template_indices = [int(ind) for ind in sys.argv[5].split(',')]
+        
+    run_all(model, device, out_dir, random_weights=random_weights, template_indices=template_indices)
