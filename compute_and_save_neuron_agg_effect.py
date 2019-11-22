@@ -70,9 +70,10 @@ def main(folder_name="results/20191114_neuron_intervention/",
                     'total': p[2]+p[1],
                     'max': max([p[2],p[1]], key=abs)}
 
-    fnames = [f[:-4] for f in os.listdir(folder_name) if f.endswith("csv")]
-    fnames = [f for f in fnames if "_" + model_name in f]
-    paths = [os.path.join(folder_name, f + ".csv") for f in fnames]
+    fnames = [f for f in os.listdir(folder_name) if "_" + model_name + ".csv" in f and f.endswith("csv")]
+    print(fnames)
+    paths = [os.path.join(folder_name, f) for f in fnames]
+    print(paths)
     # fnames[:5], paths[:5]
     woman_files = [f for f in paths
                    if "woman_indirect" in f
@@ -127,12 +128,12 @@ def main(folder_name="results/20191114_neuron_intervention/",
         }).reset_index()
     neuron_effect_df.columns = ['_'.join(col).strip()
                                 for col in neuron_effect_df.columns.values]
-    neuron_effect_df.to_csv(folder_name + model_name + "_neuron_effects.csv")
+    neuron_effect_df.to_csv(os.path.join(folder_name, model_name + "_neuron_effects.csv"))
 
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
-        print("USAGE: python ", sys.argv[0], "<model> <device> <out_dir>")
+        print("USAGE: python ", sys.argv[0], "<folder_name> <model_name>")
     # e.g., results/20191114...
     folder_name = sys.argv[1]
     # gpt2, gpt2-medium, gpt2-large
