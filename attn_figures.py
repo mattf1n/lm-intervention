@@ -104,7 +104,7 @@ def save_figures(data, source, model_version, filter, suffix, k=10):
             if model_version == 'distilgpt2':
                 ax1 = plt.subplot2grid((100, 85), (0, 2), colspan=60, rowspan=99)
                 ax2 = plt.subplot2grid((100, 85), (17, 67), colspan=17, rowspan=41)
-            elif model_version == 'gpt2':
+            elif model_version in ('gpt2', 'gpt2_random'):
                 ax1 = plt.subplot2grid((100, 85), (0, 0), colspan=60, rowspan=99)
                 ax2 = plt.subplot2grid((100, 85), (0, 62), colspan=15, rowspan=75)
             elif model_version == 'gpt2-medium':
@@ -167,7 +167,7 @@ def main():
     sns.set_context("paper")
     sns.set_style("white")
 
-    model_versions = ['distilgpt2', 'gpt2', 'gpt2-medium', 'gpt2-large', 'gpt2-xl']
+    model_versions = ['distilgpt2', 'gpt2', 'gpt2-medium', 'gpt2-large', 'gpt2-xl', 'gpt2_random']
     filters = ['filtered', 'unfiltered']
 
     # For testing:
@@ -198,6 +198,9 @@ def main():
         for filter in filters:
             for stat in ['bergsma', 'bls']:
                 fname = f"winogender_data/attention_intervention_{stat}_{model_version}_{filter}.json"
+                if not os.path.exists(fname):
+                    print('File does not exist:', fname)
+                    continue
                 with open(fname) as f:
                     data = json.load(f)
                     save_figures(data, 'winogender', model_version, filter, stat)
