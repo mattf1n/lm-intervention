@@ -106,11 +106,21 @@ def main(folder_name="results/20191114_neuron_intervention/",
     woman_df['template'] = woman_df['base_string_direct'].apply(get_template)
 
     def get_stereotypicality(vals):
-        return abs(profession_stereotypicality[vals]['total'])
+        return profession_stereotypicality[vals]['total']
+
+    def get_definitionality(vals):
+        return abs(profession_stereotypicality[vals]['definitional'])
 
     man_df['stereotypicality'] = man_df['profession'].apply(get_stereotypicality)
     woman_df['stereotypicality'] = woman_df['profession'].apply(get_stereotypicality)
+    # Exlude very definitional examples
+    man_df['definitional'] = man_df['profession'].apply(get_definitionality)
+    woman_df['definitional'] = woman_df['profession'].apply(get_definitionality)
 
+    man_df = man_df[man_df['definitional'] > 0.75]
+    woman_df = woman_df[woman_df['definitional'] > 0.75]
+
+    # Merge based on directionality
     overall_df = pd.concat(
         [man_df[man_df['stereotypicality'] < 0],
          woman_df[woman_df['stereotypicality'] >= 0]])
