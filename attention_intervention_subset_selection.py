@@ -87,7 +87,7 @@ def perform_intervention_single(intervention, model, layers_to_adj, heads_to_adj
           results[effect_type + "_effect_head"] = effect_head
     return results
 
-def top_k(k, interventions, mean_effect, model, model_type, data):
+def top_k(k, interventions, mean_effect, model, model_type, data, out_dir):
 	json_data = {'head': [], 'val': []}
 	for i in range(1, k+1):
 
@@ -104,9 +104,9 @@ def top_k(k, interventions, mean_effect, model, model_type, data):
 
 		json_data['val'].append(mean_effect1)
 		json_data['head'].append((res[:,0][0], res[:,1][0]))
-	pickle.dump(json_data, open("results/topk_" + model_type + "_" + data + ".pickle", "wb" ))
+		pickle.dump(json_data, open(out_dir + "/topk_" + model_type + "_" + data + ".pickle", "wb" ))
 
-def get_all_contrib(model_type, model, tokenizer, interventions, data):
+def get_all_contrib(model_type, model, tokenizer, interventions, data, out_dir):
 	json_data = {}
 
 	results = perform_interventions(interventions, model)
@@ -123,16 +123,31 @@ def get_all_contrib(model_type, model, tokenizer, interventions, data):
 	mean_effect = effect.mean(axis=0)
 	json_data['mean_effect_head'] = mean_effect
 
-	pickle.dump(json_data, open("results/mean_effect_" + model_type + "_" + data + ".pickle", "wb" ))
+	pickle.dump(json_data, open(out_dir + "/mean_effect_" + model_type + "_" + data + ".pickle", "wb" ))
 	return mean_effect
 
 
-def greedy(k, interventions, model, model_type, data):
-	layer_list = []
-	heads_list = []
-	obj_list_gr = []
+def greedy(k, interventions, model, model_type, data, out_dir):
+	
+	greedy_filename = out_dir + "/greedy_" + model_type + "_" + data + ".pickle"
+
+	if os.path.exists(greedy_filename):
+		print('loading precomputed greedy values')
+		res = pickle.load( open(greedy_filename, "rb" )) 
+		obj_list_gr = res['val']
+		layer_list = [i[0] for i in res['head']]
+		heads_list = [i[1] for i in res['head']]
+		k = k - len(obj_list_gr)
+	else:
+		layer_list = []
+		heads_list = []
+		obj_list_gr = []
+
+	
 	json_data = {}
 	json_data_inter = {}
+
+
 	for i in range(k):
 		results = perform_interventions_single(interventions, model, layers_to_adj=np.array(layer_list), 
 		                                       heads_to_adj=np.array(heads_list), search=True)
@@ -150,39 +165,46 @@ def greedy(k, interventions, model, model_type, data):
 		layer_list.append(res[:,0][0])
 		heads_list.append(res[:,1][0])
 
-	pickle.dump(json_data_inter, open("results/greedy_intermediate" + model_type + "_wb.pickle", "wb" ))
+		pickle.dump(json_data_inter, open(out_dir + "/greedy_intermediate_" + model_type + "_wb.pickle", "wb" ))
 
-	json_data['val'] = obj_list_gr
-	json_data['head'] = [i for i in zip(layer_list, heads_list)]
-	pickle.dump(json_data, open("results/greedy_" + model_type + "_" + data + ".pickle", "wb" ))
+		json_data['val'] = obj_list_gr
+		json_data['head'] = [i for i in zip(layer_list, heads_list)]
+		pickle.dump(json_data, open(greedy_filename, "wb" ))
 
 
 if __name__ == '__main__':
-	ap = ArgumentParser(description="")
-	ap.add_argument('--algo', type=str, choices=['topk', 'greedy', 'test'], default='topk')
-	ap.add_argument('--k', type=int, default=25)
-	ap.add_argument('--data', type=str, choices=['winobias', 'winogender'], default='winogender')
+	if not len(sys.argv) == 6:
+		print("USAGE: python ", sys.argv[0], "<model> <data> <algo> <k> <out_dir>")
 
-	model_type_list = ['distilgpt2', 'gpt2-medium']
-	if args.data == 'winobias':
+	model_type = sys.argv[1] # gpt2, gpt2-medium, gpt2-large
+	data = sys.argv[2] # winobias or winogender
+	algo = sys.argv[3] # greedy or topk
+	k = sys.argv[4] # int 
+	out_dir = sys.argv[5] # dir to write results
+
+	if data == 'winobias':
 		data_ext = 'wb'
 	else:
 		data_ext = 'wg'
 
-	for model_type in model_type_list:
-		print(model_type)
-		tokenizer = GPT2Tokenizer.from_pretrained(model_type)
-		model = Model(output_attentions=True, device='cuda', gpt2_version=model_type)
+	tokenizer = GPT2Tokenizer.from_pretrained(model_type)
+	model = Model(output_attentions=True, device='cuda', gpt2_version=model_type)
 
-		if args.data == 'winobias':
-			interventions, _ = get_interventions_winobias(model_type, do_filter=True, split='dev', model=model, 
-															tokenizer=tokenizer, device='cuda')
-		else:
-			interventions, _ = get_interventions_winogender(model_type, do_filter=True, stat='bls', model=model, 
-											tokenizer=tokenizer, device='cuda')
+	if data == 'winobias':
+		interventions, _ = get_interventions_winobias(model_type, do_filter=True, split='dev', model=model, 
+														tokenizer=tokenizer, device='cuda')
+	else:
+		interventions, _ = get_interventions_winogender(model_type, do_filter=True, stat='bls', model=model, 
+										tokenizer=tokenizer, device='cuda')
 
-		mean_effect = get_all_contrib(model_type, model, tokenizer, interventions, data_ext)
-		if args.algo == 'topk':
-			top_k(args.k, interventions, mean_effect, model, model_type, data_ext)
-		else:
-			greedy(args.k, interventions, model, model_type, data_ext)
+	if algo == 'topk':
+		mean_effect_filename = out_dir + "/mean_effect_" + model_type + "_" + data_ext + ".pickle"
+		if os.path.exists(mean_effect_filename):
+			print('loading precomputed mean effect')
+			mean_effect_res = pickle.load( open(mean_effect_filename, "rb" ))
+			mean_effect = mean_effect_res['mean_effect_head']
+		else: 
+			mean_effect = get_all_contrib(model_type, model, tokenizer, interventions, data_ext, out_dir)
+		top_k(int(k), interventions, mean_effect, model, model_type, data_ext, out_dir)
+	else:
+		greedy(int(k), interventions, model, model_type, data_ext, out_dir)
