@@ -5,9 +5,10 @@ from matplotlib import pyplot as plt
 from transformers import GPT2Model, GPT2Tokenizer
 from operator import itemgetter
 from winobias import OCCUPATION_FEMALE_PCT
+from collections import defaultdict
+import math
 
 def save_fig(prompts, heads, model, tokenizer, fname, device):
-    attentions = []
     plt.subplots_adjust(right=0.5)
 
     fig, axs = plt.subplots(1, 2, sharey=True, figsize=(4, 4))
@@ -18,6 +19,8 @@ def save_fig(prompts, heads, model, tokenizer, fname, device):
     plt.setp(axs[0].get_yticklabels(), fontsize=14, ha='center')
     axs[0].yaxis.set_ticks_position('none')
 
+    attentions = []
+    max_attn = 0
     for g_index in range(2):
         prompt = prompts[g_index]
         input_ = tokenizer.encode(prompt)
@@ -28,14 +31,24 @@ def save_fig(prompts, heads, model, tokenizer, fname, device):
         attention = attention.squeeze(1)
         assert torch.allclose(attention.sum(-1), torch.tensor([1.0]))
         attentions.append(attention)
-        seq = tokenizer.convert_ids_to_tokens(input_[:-1]) + ["she/he"]
-        seq = [t.replace('Ġ', '') for t in seq]
+        if g_index == 0:
+            seq = tokenizer.convert_ids_to_tokens(input_[:-1]) + ["she/he"]
+            seq = [t.replace('Ġ', '') for t in seq]
+        attn_sum = torch.Tensor([0])
+        for layer, head in heads:
+            attn_sum = attention[layer][head][-1] + attn_sum
+        if max(attn_sum) > max_attn:
+            max_attn = max(attn_sum)
+    assert max_attn < 1
+    xlim_upper = math.ceil(max_attn * 10) / 10
+    for g_index in range(2):
+        attention = attentions[g_index]
         left = 0
         prev = None
         head_names = []
-
         ax = axs[g_index]
-        ax.set_xlim([0, 0.8])
+        ax.set_xlim([0, xlim_upper])
+        ax.set_xticks([0, xlim_upper])
         plts = []
         for i, (layer, head) in enumerate(heads):
             attn_last_word = attention[layer][head][-1].numpy()
@@ -55,7 +68,7 @@ def save_fig(prompts, heads, model, tokenizer, fname, device):
             prev = attn_last_word
         if g_index == 0:
             ax.invert_xaxis()
-        plt.setp(ax.get_xticklabels(), fontsize=14)
+        plt.setp(ax.get_xticklabels(), fontsize=12)
         sns.despine(left=True, bottom=True)
         if g_index == 1:
             leg = ax.legend(plts, head_names, fontsize=12, handlelength=.9, handletextpad=.4,
@@ -64,7 +77,6 @@ def save_fig(prompts, heads, model, tokenizer, fname, device):
             leg.legendHandles[1].set_color('#DD8452')
 
     axs[0].get_yticklabels()[0].set_color('#AFAFAF')
-
 
     plt.tight_layout()
     plt.savefig(fname, format='pdf')
