@@ -85,6 +85,8 @@ def save_fig(prompts, heads, model, tokenizer, fname, device, highlight_indices=
         ax.set_xticks([0, 0.5])
         plt.setp(ax.get_xticklabels(), fontsize=12)
         sns.despine(left=True, bottom=True)
+        if g_index == 1:
+            ax.legend(plts, head_names, fontsize=12, handlelength=.9, handletextpad=.4, bbox_to_anchor=[0.1, 0.17])
 
     plt.tight_layout()
     plt.savefig(fname, format='pdf')
