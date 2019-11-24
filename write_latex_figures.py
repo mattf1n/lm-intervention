@@ -32,22 +32,24 @@ for model_version in model_versions:
 \\begin{{figure*}}
 \\centering
 \\begin{{minipage}}[b]{{.4\\textwidth}}
-\\includegraphics[width=1\\linewidth,trim={{0.5cm 0.5cm 0.5cm 0.8cm}},clip]{{{fnames[0]}}}
+\\vspace{{-1.3em}}
+\\includegraphics[width=1\\linewidth,trim={{0.5cm 0.5cm 0.5cm 0.7cm}},clip]{{{fnames[0]}}}
 \\label{{{fig_names[0]}}}
 \\end{{minipage}}\\qquad
 \\begin{{minipage}}[b]{{.4\\textwidth}}
-\\includegraphics[width=1\\linewidth,trim={{0.5cm 0.5cm 0.5cm 0.8cm}},clip]{{{fnames[1]}}}
+\\vspace{{-1.3em}}
+\\includegraphics[width=1\\linewidth,trim={{0.5cm 0.5cm 0.5cm 0.7cm}},clip]{{{fnames[1]}}}
 \\label{{{fig_names[1]}}}
 \\end{{minipage}}
 \\begin{{minipage}}[b]{{.4\\textwidth}}
-\\includegraphics[width=1\\linewidth,trim={{0.5cm 0.5cm 0.5cm 0.8cm}},clip]{{{fnames[2]}}}
+\\includegraphics[width=1\\linewidth,trim={{0.5cm 0.5cm 0.5cm 0.7cm}},clip]{{{fnames[2]}}}
 \\label{{{fig_names[2]}}}
 \\end{{minipage}}\\qquad
 \\begin{{minipage}}[b]{{.4\\textwidth}}
 \\includegraphics[width=1\\linewidth,trim={{0.5cm 0.5cm 0.5cm 0.7cm}},clip]{{{fnames[3]}}}
 \\label{{{fig_names[3]}}}
 \\end{{minipage}}
-\\vspace{{-2em}}
+\\vspace{{-1.6em}}
 \\caption{{{caption}}}
 \\vspace{{-2em}}
 \\end{{figure*}}
