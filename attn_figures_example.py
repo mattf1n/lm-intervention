@@ -18,7 +18,8 @@ light_blue = '#92ADDD'
 dark_blue = '#062DB0'
 # dark_blue = '#FFFFFF'
 black = '#000000'
-gray = '#595959'
+# gray = '#595959'
+gray = '#303030'
 
 grayed_out_blue = '#D1DBEB'
 orange = '#DD8452'
@@ -32,32 +33,40 @@ light_blue = blue
 light_orange = orange
 
 def save_fig(prompts, heads, model, tokenizer, fname, device, highlight_indices=None):
+    palette = sns.color_palette('muted')
     plt.subplots_adjust(right=0.5)
+    plt.rc('text', usetex=True)
+    # plt.rc('text.latex', preamble='\\usepackage{lmodern}\n\\usepackage{soul}\n\\setul{}{1.5pt}')
+    # plt.rc('text.latex', preamble='\\usepackage{lmodern}\n\\usepackage{soul}\n\\setul{}{1.5pt}')
 
-    fig, axs = plt.subplots(1, 2, sharey=True, figsize=(4, 4))
-    axs[0].invert_yaxis()
-    axs[0].tick_params(axis='y', which='major', pad=42)
-    axs[0].yaxis.set_label_position("right")
-    axs[0].yaxis.tick_right()
-    plt.setp(axs[0].get_yticklabels(), fontsize=14, ha='center')
+
+    fig, axs = plt.subplots(1, 2, sharey=False, figsize=(5, 4))
+    # axs[0].invert_yaxis()
+    # axs[0].tick_params(axis='y', which='major', pad=42)
+    # axs[0].yaxis.set_label_position("right")
+    # axs[0].yaxis.tick_right()
+    # plt.setp(axs[0].get_yticklabels(), fontsize=14, ha='center')
     axs[0].yaxis.set_ticks_position('none')
     # plt.rc('figure', titlesize=20)
     plt.rcParams.update({'axes.titlesize': 'xx-large'})
+    my_cmap = sns.light_palette("Navy", as_cmap=True)
     attentions = []
     max_attn = 0
+    seqs = []
     for g_index in range(2):
         prompt = prompts[g_index]
         input_ = tokenizer.encode(prompt)
         batch = torch.tensor(input_).unsqueeze(0).to(device)
         attention = model(batch)[-1]
+        seq = tokenizer.convert_ids_to_tokens(input_)
+        seq = [t.replace('Ġ', '') for t in seq]
+        seqs.append(seq)
         seq_len = len(input_)
         attention = torch.stack(attention)
         attention = attention.squeeze(1)
         assert torch.allclose(attention.sum(-1), torch.tensor([1.0]))
         attentions.append(attention)
-        if g_index == 0:
-            seq = tokenizer.convert_ids_to_tokens(input_[:-1]) + ["she   he"]
-            seq = [t.replace('Ġ', '') for t in seq]
+              # seq = tokenizer.convert_ids_to_tokens(input_[:-1]) + ["she   he"]
         attn_sum = torch.Tensor([0])
         for layer, head in heads:
             attn_sum = attention[layer][head][-1] + attn_sum
@@ -70,9 +79,20 @@ def save_fig(prompts, heads, model, tokenizer, fname, device, highlight_indices=
         prev = None
         head_names = []
         ax = axs[g_index]
-        ax.set_xlim([0, xlim_upper])
-        ax.set_xticks([0, xlim_upper])
-        ax.set(title=(' she' if g_index == 0 else 'he  '))
+        seq = seqs[g_index]
+        formatted_seq = []
+        if highlight_indices:
+            for i, t in enumerate(seq):
+                if i in highlight_indices:
+                    if i == highlight_indices[g_index]:
+                        # t = f"\\textbf{{\\ul{{{t}}}}}"
+                        t = f"\\textbf{{{t}}}"
+                    else:
+                        t = f"\\underline{{{t}}}"
+                formatted_seq.append(t)
+            formatted_seq[-1] = f"\\textbf{{{formatted_seq[-1]}}}"
+        else:
+            formatted_seq = seq
 
         plts = []
         for i, (layer, head) in enumerate(heads):
@@ -109,37 +129,62 @@ def save_fig(prompts, heads, model, tokenizer, fname, device, highlight_indices=
                 # opacity[highlight_indices[g_index]] = 1.0
             # else:
             #     opacity = 1#[1.0] * seq_len
-
+            # ax.set_prop_cycle(color=['red', 'green', 'blue'])
+            # ax.set_color_cycle(sns.color_palette("coolwarm_r", num_lines))
             if prev is None:
-                p = ax.barh(seq, attn_last_word,  color=color) #, edgecolor = edgecolor)
+                p = ax.barh(formatted_seq, attn_last_word, color=palette[i])#, color=my_cmap[i])#,  color=color) #, edgecolor = edgecolor)
             else:
-                p = ax.barh(seq, attn_last_word, left=prev, color=color) #, edgecolor=edgecolor)
+                p = ax.barh(formatted_seq, attn_last_word, left=prev, color=palette[i])#, color=my_cmap[i]) #, color=color) #, edgecolor=edgecolor)
+            if highlight_indices:
+                for i in range(seq_len):
+                    if highlight_indices[g_index] ==i:
+                        color = black
+                    else:
+                        color = gray
+                    ax.get_yticklabels()[i].set_color(color)
+                ax.get_yticklabels()[-1].set_color(black)
+
             plts.append(p)
             head_names.append(f"Head {layer}-{head}")
             prev = attn_last_word
-        if g_index == 0:
-            ax.invert_xaxis()
+        # if g_index == 0:
+        #     ax.invert_xaxis()
+        ax.set_xlim([0, xlim_upper])
+        ax.set_xticks([0, xlim_upper])
+        # ax.set(title=(' she' if g_index == 0 else 'he  '))
+        ax.invert_yaxis()
+        plt.setp(ax.get_yticklabels(), fontsize=14, ha='right')
+        ax.set_xticks([0, 0.5])
+        # if highlight_indices:
+        #     for i in range(seq_len):
+        #         ax.get_yticklabels()[i].set_color(gray)
+        #     ax.get_yticklabels()[-1].set_fontweight("bold")
+        #     ax.get_yticklabels()[-1].set_fontweight("black")
+        #     for i, hi in enumerate(highlight_indices):
+        #         if i==g_index:
+        #             ax.get_yticklabels()[hi].set_fontweight("bold")
+        #             ax.get_yticklabels()[hi].set_fontweight("black")
         plt.setp(ax.get_xticklabels(), fontsize=12)
         sns.despine(left=True, bottom=True)
         if g_index == 1:
             leg = ax.legend(plts, head_names, fontsize=12, handlelength=.9, handletextpad=.4,
                             bbox_to_anchor=[0.1, 0.17])
-            if highlight_indices:
-                leg.legendHandles[0].set_color(light_blue)
-                leg.legendHandles[1].set_color(light_orange)
-            else:
-                leg.legendHandles[0].set_color(blue)
-                leg.legendHandles[1].set_color(orange)
+            # if highlight_indices:
+            #     leg.legendHandles[0].set_color(light_blue)
+            #     leg.legendHandles[1].set_color(light_orange)
+            # else:
+            #     leg.legendHandles[0].set_color(blue)
+            #     leg.legendHandles[1].set_color(orange)
 
-    if highlight_indices:
-        axs[0].get_yticklabels()[-1].set_fontweight("bold")
-        axs[0].get_yticklabels()[-1].set_fontweight("black")
-        for i in highlight_indices:
-            axs[0].get_yticklabels()[i].set_fontweight("bold")
-            axs[0].get_yticklabels()[i].set_fontweight("black")
-        for i in range(seq_len):
-            if i not in highlight_indices and i != seq_len - 1:
-                axs[0].get_yticklabels()[i].set_color(gray)
+    # if highlight_indices:
+    #     axs[0].get_yticklabels()[-1].set_fontweight("bold")
+    #     axs[0].get_yticklabels()[-1].set_fontweight("black")
+    #     for i in highlight_indices:
+    #         axs[0].get_yticklabels()[i].set_fontweight("bold")
+    #         axs[0].get_yticklabels()[i].set_fontweight("black")
+    #     for i in range(seq_len):
+    #         if i not in highlight_indices and i != seq_len - 1:
+    #             axs[0].get_yticklabels()[i].set_color(gray)
 
     plt.tight_layout()
     plt.savefig(fname, format='pdf')
@@ -149,7 +194,6 @@ def save_fig(prompts, heads, model, tokenizer, fname, device, highlight_indices=
 def main():
     sns.set_context("paper")
     sns.set_style("white")
-
     device = 'cpu'
 
     model_version = 'gpt2'
