@@ -5,6 +5,7 @@ from matplotlib import pyplot as plt
 from transformers import GPT2Model, GPT2Tokenizer
 from operator import itemgetter
 import math
+import numpy as np
 
 BLACK = '#000000'
 GRAY = '#303030'
@@ -40,7 +41,6 @@ def save_fig(prompts, heads, model, tokenizer, fname, device, highlight_indices=
     xlim_upper = math.ceil(max_attn * 10) / 10
     for g_index in range(2):
         attention = attentions[g_index]
-        left = 0
         prev = None
         head_names = []
         ax = axs[g_index]
@@ -59,13 +59,18 @@ def save_fig(prompts, heads, model, tokenizer, fname, device, highlight_indices=
             formatted_seq = seq
 
         plts = []
+        left = None
         for i, (layer, head) in enumerate(heads):
             attn_last_word = attention[layer][head][-1].numpy()
-            left += attn_last_word
-            if prev is None:
+
+            if left is None:
                 p = ax.barh(formatted_seq, attn_last_word, color=palette[i])
             else:
-                p = ax.barh(formatted_seq, attn_last_word, left=prev, color=palette[i])
+                p = ax.barh(formatted_seq, attn_last_word, left=left, color=palette[i])
+            if left is None:
+                left = np.zeros_like(attn_last_word)
+            left += attn_last_word
+
             if highlight_indices:
                 for i in range(seq_len):
                     if highlight_indices[g_index] == i:
@@ -76,7 +81,6 @@ def save_fig(prompts, heads, model, tokenizer, fname, device, highlight_indices=
                 ax.get_yticklabels()[-1].set_color(BLACK)
             plts.append(p)
             head_names.append(f"Head {layer}-{head}")
-            prev = attn_last_word
 
         ax.set_xlim([0, xlim_upper])
         ax.set_xticks([0, xlim_upper])
@@ -98,33 +102,39 @@ def main():
     sns.set_style("white")
     device = 'cpu'
 
-    model_version = 'gpt2'
-    heads = [(5, 10), (5, 8)]
+    top_heads = {
+        'gpt2':[(5, 8), (5, 10), (4,6)],
+        'gpt2-medium': [(10, 9), (6, 15), (10,12)],
+        'gpt2-xl':[(16,15), (16, 24), (17,10)],
+        'gpt2-large':[(16,19), (16,5), (15,6)],
+        'distilgpt2': [(3,1), (2,6), (3,6)]
+    }
 
-    # Verify in dataset
     filter = 'filtered'
     split = 'dev'
-    fname = f"winobias_data/attention_intervention_{model_version}_{filter}_{split}.json"
 
-    with open(fname) as f:
-        data = json.load(f)
-    prompts = None
-    results = data['results']
-    results_by_ratio = sorted(results, key=itemgetter('total_effect'), reverse=True)
+    for model_version, heads in top_heads.items():
+        fname = f"winobias_data/attention_intervention_{model_version}_{filter}_{split}.json"
 
-    with torch.no_grad():
-        # Get attention and validate
-        model = GPT2Model.from_pretrained(model_version, output_attentions=True)
-        tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
-        model.eval()
-        for result_index, result in enumerate(results_by_ratio):
-            prompts = (result['base_string1'], result['base_string2'])
-            fname = f'results/attention_intervention/qualitative/winobias_{model_version}_{filter}_{split}_{result_index}.pdf'
-            if "The nurse examined the farmer for injuries because"in prompts[0]:
-                highlight_indices = [1, 4]
-            else:
-                highlight_indices = None
-            save_fig(prompts, heads, model, tokenizer, fname, device, highlight_indices)
+        with open(fname) as f:
+            data = json.load(f)
+        prompts = None
+        results = data['results']
+        results_by_ratio = sorted(results, key=itemgetter('total_effect'), reverse=True)
+
+        with torch.no_grad():
+            # Get attention and validate
+            model = GPT2Model.from_pretrained(model_version, output_attentions=True)
+            tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+            model.eval()
+            for result_index, result in enumerate(results_by_ratio):
+                prompts = (result['base_string1'], result['base_string2'])
+                fname = f'results/attention_intervention/qualitative/winobias_{model_version}_{filter}_{split}_{result_index}.pdf'
+                if "The nurse examined the farmer for injuries because"in prompts[0]:
+                    highlight_indices = [1, 4]
+                else:
+                    highlight_indices = None
+                save_fig(prompts, heads, model, tokenizer, fname, device, highlight_indices)
 
 
 if __name__ == '__main__':
