@@ -1,10 +1,12 @@
 import json
 import numpy as np
 from matplotlib import pyplot as plt
+import matplotlib as mpl
 import seaborn as sns; sns.set()
 import pandas as pd
 
 def main():
+    # mpl.rcParams['savefig.pad_inches'] = 0
 
     models = ['distilgpt2', 'gpt2', 'gpt2-medium', 'gpt2-large', 'gpt2-xl']
     model_to_name = {
@@ -46,12 +48,13 @@ def main():
 
     # Plot stacked bar chart
     plt.figure(num=1, figsize=(5, 3))
-    width = 0.3
+    width = .29
     inds = np.arange(len(models))
-    p1 = plt.bar(inds, te, width, color=palette[2])
-    p2 = plt.bar(inds + width, nie_all, width, color=palette[1])
-    p3 = plt.bar(inds + width, nde_all, width, bottom=nie_all, color=palette[0])
-    p4 = plt.bar(inds + 2 * width, nie_sum, width, color=palette[3])
+    spacing = 0.015
+    p1 = plt.bar(inds, te, width, color=palette[2], linewidth=0)
+    p2 = plt.bar(inds + width + spacing, nie_all, width, color=palette[1], linewidth=0)
+    p3 = plt.bar(inds + width + spacing, nde_all, width, bottom=nie_all, color=palette[0], linewidth=0)
+    p4 = plt.bar(inds + 2 * (width + spacing), nie_sum, width, color=palette[3], linewidth=0)
 
     plt.ylabel('Effect', size=11)
     # plt.title('Effects of top heads', fontsize=11)
