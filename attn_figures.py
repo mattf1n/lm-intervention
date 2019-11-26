@@ -35,6 +35,7 @@ def save_figures(data, source, model_version, filter, suffix, k=10):
     plt.rc('figure', titlesize=20)
 
     # Plot stacked bar chart
+    palette = sns.color_palette()#('muted')
     plt.figure(num=1, figsize=(5, 3))
     topk_direct = []
     topk_indirect = []
@@ -46,15 +47,15 @@ def save_figures(data, source, model_version, filter, suffix, k=10):
         labels.append(f'{layer}-{head}')
     width = 0.6
     inds = range(k)
-    p1 = plt.bar(inds, topk_direct, width)
-    p2 = plt.bar(inds, topk_indirect, width, bottom=topk_direct)
+    p1 = plt.bar(inds, topk_indirect, width, linewidth=0, color=palette[1])
+    p2 = plt.bar(inds, topk_direct, width, bottom=topk_indirect, linewidth=0, color=palette[0])
     plt.ylabel('Effect', size=11)
     plt.title('Effects of top heads', fontsize=11)
     plt.xticks(inds, labels, size=10)
     plt.yticks(size=10)
     # plt.yticks(np.arange(0, 81, 10))
     p3 = plt.axhline(data['mean_total_effect'], linestyle='--')
-    plt.legend((p3, p2[0], p1[0]), ('Total', 'Indirect', 'Direct'), loc='lower right', fontsize=11)
+    plt.legend((p3, p2[0], p1[0]), ('Total', 'Direct', 'Indirect'), loc='lower right', fontsize=11)
     plt.savefig(f'results/attention_intervention/stacked_bar_charts/{source}_{model_version}_{filter}_'
                 f'{suffix}.pdf', format='pdf')
     plt.close()
