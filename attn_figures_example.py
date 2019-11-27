@@ -14,6 +14,7 @@ def save_fig(prompts, heads, model, tokenizer, fname, device, highlight_indices=
     palette = sns.color_palette('muted')
     plt.subplots_adjust(right=0.5)
     plt.rc('text', usetex=True)
+
     fig, axs = plt.subplots(1, 2, sharey=False, figsize=(5, 4))
     axs[0].yaxis.set_ticks_position('none')
     plt.rcParams.update({'axes.titlesize': 'xx-large'})
@@ -64,9 +65,9 @@ def save_fig(prompts, heads, model, tokenizer, fname, device, highlight_indices=
             attn_last_word = attention[layer][head][-1].numpy()
 
             if left is None:
-                p = ax.barh(formatted_seq, attn_last_word, color=palette[i])
+                p = ax.barh(formatted_seq, attn_last_word, color=palette[i], linewidth=0)
             else:
-                p = ax.barh(formatted_seq, attn_last_word, left=left, color=palette[i])
+                p = ax.barh(formatted_seq, attn_last_word, left=left, color=palette[i], linewidth=0)
             if left is None:
                 left = np.zeros_like(attn_last_word)
             left += attn_last_word
@@ -89,8 +90,10 @@ def save_fig(prompts, heads, model, tokenizer, fname, device, highlight_indices=
         ax.set_xticks([0, 0.5])
         plt.setp(ax.get_xticklabels(), fontsize=12)
         sns.despine(left=True, bottom=True)
-        if g_index == 1:
-            ax.legend(plts, head_names, fontsize=12, handlelength=.9, handletextpad=.4, bbox_to_anchor=[0.1, 0.17])
+        ax.tick_params(axis='x', which='major', pad=0)
+        if g_index == 0:
+            ax.legend(plts, head_names, fontsize=12, handlelength=.9, handletextpad=.3, labelspacing = 0.15,
+                      borderpad=0.2, loc='lower left', bbox_to_anchor=[.4, .025], bbox_transform=plt.gcf().transFigure)  #)bbox_to_anchor=[0.1, 0.17])
 
     plt.tight_layout()
     plt.savefig(fname, format='pdf')
@@ -110,9 +113,13 @@ def main():
         'distilgpt2': [(3,1), (2,6), (3,6)]
     }
 
+    # For testing only:
+    top_heads = {
+        'gpt2': [(5, 8), (5, 10), (4, 6)]
+    }
+
     filter = 'filtered'
     split = 'dev'
-
     for model_version, heads in top_heads.items():
         fname = f"winobias_data/attention_intervention_{model_version}_{filter}_{split}.json"
 
