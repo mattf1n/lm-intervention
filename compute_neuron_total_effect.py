@@ -32,9 +32,8 @@ def main(folder_name="results/20191114_neuron_intervention/",
                     'total': p[2]+p[1],
                     'max': max([p[2],p[1]], key=abs)}
 
-    fnames = [f[:-4] for f in os.listdir(folder_name) if f.endswith("csv")]
-    fnames = [f for f in fnames if "_" + model_name in f]
-    paths = [os.path.join(folder_name, f + ".csv") for f in fnames]
+    fnames = [f for f in os.listdir(folder_name) if "_" + model_name + ".csv" in f and f.endswith("csv")]    
+    paths = [os.path.join(folder_name, f) for f in fnames]
     # fnames[:5], paths[:5]
     woman_files = [f for f in paths
                    if "woman_indirect" in f
@@ -53,9 +52,9 @@ def main(folder_name="results/20191114_neuron_intervention/",
         temp_df['she_total_effect'] = temp_df['alt2_effect'] / temp_df['base_c2_effect']
         temp_df['total_effect'] = temp_df.apply(compute_total_effect, axis=1)
 
-        mean_he_total = filtered_mean(temp_df, 'he_total_effect')
-        mean_she_total = filtered_mean(temp_df, 'she_total_effect')
-        mean_total = filtered_mean(temp_df, 'total_effect')
+        mean_he_total = filtered_mean(temp_df, 'he_total_effect', profession_stereotypicality)
+        mean_she_total = filtered_mean(temp_df, 'she_total_effect', profession_stereotypicality)
+        mean_total = filtered_mean(temp_df, 'total_effect', profession_stereotypicality)
         he_means.append(mean_he_total)
         she_means.append(mean_she_total)
         means.append(mean_total)
@@ -67,7 +66,7 @@ def main(folder_name="results/20191114_neuron_intervention/",
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
-        print("USAGE: python ", sys.argv[0], "<model> <device> <out_dir>")
+        print("USAGE: python ", sys.argv[0], "<folder_name> <model_name>")
     # e.g., results/20191114...
     folder_name = sys.argv[1]
     # gpt2, gpt2-medium, gpt2-large

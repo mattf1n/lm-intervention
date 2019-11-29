@@ -2,7 +2,7 @@ import json
 from prettytable import PrettyTable
 import pandas as pd
 import numpy as np
-
+import os
 
 def main():
     fields = ['model_version', 'do_filter', 'stat', 'mean_total_effect', 'mean_model_indirect_effect',
@@ -10,12 +10,16 @@ def main():
               'num_examples_analyzed']
     t = PrettyTable(fields)
     for filter in ['filtered', 'unfiltered']:
-        for model_version in ['distilgpt2', 'gpt2', 'gpt2-medium', 'gpt2-large', 'gpt2-xl']:
+        for model_version in ['distilgpt2', 'gpt2', 'gpt2-medium', 'gpt2-large', 'gpt2-xl', 'gpt2_random']:
             for stat in ['bergsma', 'bls']:
                 fname =  f"winogender_data/attention_intervention_{stat}_{model_version}_{filter}.json"
+                if not os.path.exists(fname):
+                    print("File not available:", fname)
+                    continue
                 with open(fname) as f:
                     data = json.load(f)
                     data['stat'] = stat
+                    data['model_version'] = model_version
                     try:
                         data['prop_aligned'] = data['num_examples_aligned'] / data['num_examples_loaded']
                     except KeyError:

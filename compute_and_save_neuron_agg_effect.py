@@ -70,9 +70,10 @@ def main(folder_name="results/20191114_neuron_intervention/",
                     'total': p[2]+p[1],
                     'max': max([p[2],p[1]], key=abs)}
 
-    fnames = [f[:-4] for f in os.listdir(folder_name) if f.endswith("csv")]
-    fnames = [f for f in fnames if "_" + model_name in f]
-    paths = [os.path.join(folder_name, f + ".csv") for f in fnames]
+    fnames = [f for f in os.listdir(folder_name) if "_" + model_name + ".csv" in f and f.endswith("csv")]
+    print(fnames)
+    paths = [os.path.join(folder_name, f) for f in fnames]
+    print(paths)
     # fnames[:5], paths[:5]
     woman_files = [f for f in paths
                    if "woman_indirect" in f
@@ -105,11 +106,21 @@ def main(folder_name="results/20191114_neuron_intervention/",
     woman_df['template'] = woman_df['base_string_direct'].apply(get_template)
 
     def get_stereotypicality(vals):
-        return abs(profession_stereotypicality[vals]['total'])
+        return profession_stereotypicality[vals]['total']
+
+    def get_definitionality(vals):
+        return abs(profession_stereotypicality[vals]['definitional'])
 
     man_df['stereotypicality'] = man_df['profession'].apply(get_stereotypicality)
     woman_df['stereotypicality'] = woman_df['profession'].apply(get_stereotypicality)
+    # Exlude very definitional examples
+    man_df['definitional'] = man_df['profession'].apply(get_definitionality)
+    woman_df['definitional'] = woman_df['profession'].apply(get_definitionality)
 
+    man_df = man_df[man_df['definitional'] > 0.75]
+    woman_df = woman_df[woman_df['definitional'] > 0.75]
+
+    # Merge based on directionality
     overall_df = pd.concat(
         [man_df[man_df['stereotypicality'] < 0],
          woman_df[woman_df['stereotypicality'] >= 0]])
@@ -127,12 +138,12 @@ def main(folder_name="results/20191114_neuron_intervention/",
         }).reset_index()
     neuron_effect_df.columns = ['_'.join(col).strip()
                                 for col in neuron_effect_df.columns.values]
-    neuron_effect_df.to_csv(folder_name + model_name + "_neuron_effects.csv")
+    neuron_effect_df.to_csv(os.path.join(folder_name, model_name + "_neuron_effects.csv"))
 
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
-        print("USAGE: python ", sys.argv[0], "<model> <device> <out_dir>")
+        print("USAGE: python ", sys.argv[0], "<folder_name> <model_name>")
     # e.g., results/20191114...
     folder_name = sys.argv[1]
     # gpt2, gpt2-medium, gpt2-large
