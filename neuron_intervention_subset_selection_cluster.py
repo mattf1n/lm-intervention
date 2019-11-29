@@ -331,6 +331,8 @@ def dash(model, model_type, tokenizer, templates, k=50, out_dir=''):
   l_list = []
   for i in range(-1, 12):
       l_list += 768*[i]
+  n_list = np.array(n_list)
+  l_list = np.array(l_list)
 
   for i in range(3):
     # randomly sample the number of elements
@@ -372,8 +374,9 @@ def dash(model, model_type, tokenizer, templates, k=50, out_dir=''):
 
   df_sorted = df.sort_values(by=['odds_ratio'], ascending=False)
 
-  neurons_to_choose = df_sorted.head(500)['neuron'].values[0]
-  layers_to_choose = df_sorted.head(500)['layer'].values[0]
+  neurons_to_choose = np.array(df_sorted.head(500)['neuron'].values[0])
+  layers_to_choose = np.array(df_sorted.head(500)['layer'].values[0])
+
 
   # memory issue
   del female_df
