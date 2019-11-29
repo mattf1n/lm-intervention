@@ -705,7 +705,7 @@ if __name__ == '__main__':
     templates = get_template_list()
     templates = ["The {} said that"]
 
-    dash(model, model_type, tokenizer, templates, k=250, out_dir='results'):
+    dash(model, model_type, tokenizer, templates, k=250, out_dir='results')
 
     # if algo == 'topk':
     #   # load marg contrib
