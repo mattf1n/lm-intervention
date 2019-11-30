@@ -42,7 +42,6 @@ def save_fig(prompts, heads, model, tokenizer, fname, device, highlight_indices=
     xlim_upper = math.ceil(max_attn * 10) / 10
     for g_index in range(2):
         attention = attentions[g_index]
-        prev = None
         head_names = []
         ax = axs[g_index]
         seq = seqs[g_index]
@@ -114,15 +113,17 @@ def main():
     }
 
     # For testing only:
-    top_heads = {
-        'gpt2': [(5, 8), (5, 10), (4, 6)]
-    }
+    # top_heads = {
+    #     'gpt2': [(5, 8), (5, 10), (4, 6)]
+    # }
 
-    filter = 'filtered'
     split = 'dev'
     for model_version, heads in top_heads.items():
+        if model_version == 'distilgpt2':
+            filter = 'unfiltered' # In order to get canonical example
+        else:
+            filter = 'filtered'
         fname = f"winobias_data/attention_intervention_{model_version}_{filter}_{split}.json"
-
         with open(fname) as f:
             data = json.load(f)
         prompts = None
@@ -136,11 +137,14 @@ def main():
             model.eval()
             for result_index, result in enumerate(results_by_ratio):
                 prompts = (result['base_string1'], result['base_string2'])
-                fname = f'results/attention_intervention/qualitative/winobias_{model_version}_{filter}_{split}_{result_index}.pdf'
+
                 if "The nurse examined the farmer for injuries because"in prompts[0]:
                     highlight_indices = [1, 4]
+                    fname = f'results/attention_intervention/qualitative/winobias_{model_version}_main.pdf'
+                    save_fig(prompts, heads, model, tokenizer, fname, device, highlight_indices)
                 else:
                     highlight_indices = None
+                fname = f'results/attention_intervention/qualitative/winobias_{model_version}_{filter}_{split}_{result_index}.pdf'
                 save_fig(prompts, heads, model, tokenizer, fname, device, highlight_indices)
 
 
