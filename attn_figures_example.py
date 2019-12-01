@@ -12,9 +12,8 @@ GRAY = '#303030'
 
 def save_fig(prompts, heads, model, tokenizer, fname, device, highlight_indices=None):
     palette = sns.color_palette('muted')
-    plt.subplots_adjust(right=0.5)
+    # plt.subplots_adjust(bottom=.2)
     plt.rc('text', usetex=True)
-
     fig, axs = plt.subplots(1, 2, sharey=False, figsize=(5, 4))
     axs[0].yaxis.set_ticks_position('none')
     plt.rcParams.update({'axes.titlesize': 'xx-large'})
@@ -90,12 +89,15 @@ def save_fig(prompts, heads, model, tokenizer, fname, device, highlight_indices=
         plt.setp(ax.get_xticklabels(), fontsize=12)
         sns.despine(left=True, bottom=True)
         ax.tick_params(axis='x', which='major', pad=0)
-        if g_index == 0:
-            ax.legend(plts, head_names, fontsize=12, handlelength=.9, handletextpad=.3, labelspacing = 0.15,
-                      borderpad=0.2, loc='lower left', bbox_to_anchor=[.4, .025], bbox_transform=plt.gcf().transFigure)  #)bbox_to_anchor=[0.1, 0.17])
+        # if g_index == 0:
+        #     ax.legend(plts, head_names, ncol=3, fontsize=12, handlelength=.9, handletextpad=.3, labelspacing = 0.15,
+        #               borderpad=0.2, loc='upper center')#, bbox_to_anchor=[.4, .025], bbox_transform=plt.gcf().transFigure)  #)bbox_to_anchor=[0.1, 0.17])
 
-    plt.tight_layout()
-    plt.savefig(fname, format='pdf')
+    # fig.legend(handles, labels, loc='upper center')
+    # plt.figlegend(plts, head_names,(1.04, 0), ncol=3, fontsize=12, handlelength=.9, handletextpad=.3)#, bbox_to_anchor=(0.5, 1.05))
+    lgd = plt.figlegend(plts, head_names,'lower center', ncol=3, fontsize=11, borderpad=0.5, handlelength=.9,  bbox_to_anchor=(0.5, 0))
+    # plt.tight_layout()
+    plt.savefig(fname, format='pdf', bbox_extra_artists = (lgd,), bbox_inches = 'tight')
     plt.close()
 
 
@@ -112,7 +114,7 @@ def main():
         'distilgpt2': [(3,1), (2,6), (3,6)]
     }
 
-    # For testing only:
+    # # For testing only:
     # top_heads = {
     #     'gpt2': [(5, 8), (5, 10), (4, 6)]
     # }
@@ -146,6 +148,7 @@ def main():
                     highlight_indices = None
                 fname = f'results/attention_intervention/qualitative/winobias_{model_version}_{filter}_{split}_{result_index}.pdf'
                 save_fig(prompts, heads, model, tokenizer, fname, device, highlight_indices)
+                # break
 
 
 if __name__ == '__main__':
