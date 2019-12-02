@@ -9,8 +9,8 @@ from scipy.stats import ttest_ind
 
 def perform_intervention(intervention, model, effect_types=('indirect', 'direct')):
     """Perform intervention and return results for specified effects"""
-    x = intervention.base_strings_tok[0]  # E.g. The doctor asked the nurse a question. He
-    x_alt = intervention.base_strings_tok[1]  # E.g. The doctor asked the nurse a question. She
+    x = intervention.base_strings_tok[0]  # E.g. The doctor asked the nurse a question. She
+    x_alt = intervention.base_strings_tok[1]  # E.g. The doctor asked the nurse a question. He
 
     with torch.no_grad():
         candidate1_base_prob, candidate2_base_prob = model.get_probabilities_for_examples_multitoken(
