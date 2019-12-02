@@ -217,7 +217,8 @@ class Model():
           neuron_loc = np.where(np.array(layers) == layer)[0]
           n_list = []
           for n in neurons:
-            n_list.append([n[i] for i in neuron_loc])
+            unsorted_n_list = [n[i] for i in neuron_loc]
+            n_list.append(list(np.sort(unsorted_n_list)))
           intervention_rep = alpha * rep[layer][n_list]
           if layer == -1:
               wte_intervention_handle = self.model.transformer.wte.register_forward_hook(
@@ -416,6 +417,7 @@ class Model():
                     for neuron, (p1, p2) in zip(neurons, probs):
                         candidate1_probs[layer + 1][neuron] = p1
                         candidate2_probs[layer + 1][neuron] = p2
+                        # Now intervening on potentially biased example
             elif intervention_loc == 'layer':
               layers_to_search = (len(neurons_to_adj) + 1)*[layers_to_adj]
               candidate1_probs = torch.zeros((1, self.num_neurons))
@@ -595,27 +597,32 @@ class Model():
                   heads_in_layer = heads_to_adj[layer_ind]
 
                   for head in range(self.num_heads):
-                      model_attn_override_data_search = []
-                      attention_override_mask = torch.zeros_like(layer_attention_override, dtype=torch.uint8)
-                      heads_list = [head]
-                      if len(heads_in_layer) > 0:
-                        heads_list.extend(heads_in_layer)
-                      for h in (heads_list):
-                          attention_override_mask[0][h] = 1 # Set mask to 1 for single head only
-                      head_attn_override_data = [{
-                          'layer': layer,
-                          'attention_override': layer_attention_override,
-                          'attention_override_mask': attention_override_mask
-                      }]
-                      model_attn_override_data_search.extend(head_attn_override_data)
-                      for override in model_attn_override_data:
-                          if override['layer'] != layer:
-                              model_attn_override_data_search.append(override)
-                              
-                      candidate1_probs_head[layer][head], candidate2_probs_head[layer][head] = self.attention_intervention(
-                          context=context,
-                          outputs=intervention.candidates_tok,
-                          attn_override_data=model_attn_override_data_search)
+                    if head not in heads_in_layer:
+                          model_attn_override_data_search = []
+                          attention_override_mask = torch.zeros_like(layer_attention_override, dtype=torch.uint8)
+                          heads_list = [head]
+                          if len(heads_in_layer) > 0:
+                            heads_list.extend(heads_in_layer)
+                          for h in (heads_list):
+                              attention_override_mask[0][h] = 1 # Set mask to 1 for single head only
+                          head_attn_override_data = [{
+                              'layer': layer,
+                              'attention_override': layer_attention_override,
+                              'attention_override_mask': attention_override_mask
+                          }]
+                          model_attn_override_data_search.extend(head_attn_override_data)
+                          for override in model_attn_override_data:
+                              if override['layer'] != layer:
+                                  model_attn_override_data_search.append(override)
+                                  
+                          candidate1_probs_head[layer][head], candidate2_probs_head[layer][head] = self.attention_intervention(
+                              context=context,
+                              outputs=intervention.candidates_tok,
+                              attn_override_data=model_attn_override_data_search)
+                    else: 
+                        candidate1_probs_head[layer][head] = -1
+                        candidate2_probs_head[layer][head] = -1
+
 
             else:
               candidate1_probs_head, candidate2_probs_head = self.attention_intervention(
