@@ -158,6 +158,9 @@ def greedy(k, interventions, model, model_type, data, out_dir):
 		mean_effect1 = effect.mean(axis=0)
 		json_data_inter[i] = effect
 
+		for j in zip(layer_list, heads_list):
+			mean_effect1[j] = -100
+
 		idx = np.argpartition(mean_effect1, mean_effect1.size - 1, axis=None)[-1:]
 		res = np.column_stack(np.unravel_index(idx, mean_effect1.shape))
 
