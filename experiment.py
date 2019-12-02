@@ -461,9 +461,9 @@ class Model():
         Run one full attention intervention experiment
         measuring indirect or direct effect.
         """
-        # E.g. The doctor asked the nurse a question. He
-        x = intervention.base_strings_tok[0]
         # E.g. The doctor asked the nurse a question. She
+        x = intervention.base_strings_tok[0]
+        # E.g. The doctor asked the nurse a question. He
         x_alt = intervention.base_strings_tok[1]
 
         if effect == 'indirect':
