@@ -168,7 +168,7 @@ def greedy(k, interventions, model, model_type, data, out_dir):
 		layer_list.append(res[:,0][0])
 		heads_list.append(res[:,1][0])
 
-		pickle.dump(json_data_inter, open(out_dir + "/greedy_intermediate_" + model_type + "_wb.pickle", "wb" ))
+		pickle.dump(json_data_inter, open(out_dir + "/greedy_intermediate_" + model_type + "_" + data + ".pickle", "wb" ))
 
 		json_data['val'] = obj_list_gr
 		json_data['head'] = [i for i in zip(layer_list, heads_list)]
