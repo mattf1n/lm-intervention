@@ -203,9 +203,9 @@ class Model():
                 raise ValueError(f"Invalid intervention_type: {intervention_type}")
             # Overwrite values in the output
             # First define mask where to overwrite
-            scatter_mask = torch.zeros_like(output).bool()
+            scatter_mask = torch.zeros_like(output).byte()
             for i, v in enumerate(neurons):
-                scatter_mask[i, position, v] = True
+                scatter_mask[i, position, v] = 1
             # Then take values from base and scatter
             output.masked_scatter_(scatter_mask, base.flatten())
 
@@ -218,7 +218,7 @@ class Model():
           n_list = []
           for n in neurons:
             unsorted_n_list = [n[i] for i in neuron_loc]
-            n_list.append(np.sort(unsorted_n_list))
+            n_list.append(list(np.sort(unsorted_n_list)))
           intervention_rep = alpha * rep[layer][n_list]
           if layer == -1:
               wte_intervention_handle = self.model.transformer.wte.register_forward_hook(
@@ -417,6 +417,7 @@ class Model():
                     for neuron, (p1, p2) in zip(neurons, probs):
                         candidate1_probs[layer + 1][neuron] = p1
                         candidate2_probs[layer + 1][neuron] = p2
+                        # Now intervening on potentially biased example
             elif intervention_loc == 'layer':
               layers_to_search = (len(neurons_to_adj) + 1)*[layers_to_adj]
               candidate1_probs = torch.zeros((1, self.num_neurons))
