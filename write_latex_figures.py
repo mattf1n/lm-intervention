@@ -6,6 +6,13 @@ model_names = {
     'gpt2-large': 'GPT2-large',
     'gpt2-xl': 'GPT2-XL'
 }
+variation_names = {
+    'bls': 'BLS',
+    'bergsma': 'Bergsma',
+    'dev': 'Dev',
+    'test': 'Test'
+}
+
 filters = ['filtered', 'unfiltered']
 source_to_variations = {
     'winobias': ['dev', 'test'],
@@ -14,31 +21,37 @@ source_to_variations = {
 for model_version in model_versions:
     for source in ['winobias', 'winogender']:
         variations = source_to_variations[source]
+        fnames = []; fig_names = []
+        caption = f"Mean indirect effect ({model_names[model_version]},{source}). Left: filt., right: "\
+                  f"unfilt. Top: {variation_names[variations[0]]}, bottom: {variation_names[variations[1]]}."
         for variation in variations:
-            fnames = []; fig_names = []
             for filter in filters:
                 fnames.append(f"images/heat_maps_with_bar_indirect/{source}_{model_version}_{filter}_{variation}.pdf")
                 fig_names.append(f"indirect_heatmap_{source}_{model_version}_{filter}_{variation}")
-            if source == 'winobias':
-                split = variation
-                caption = f"Mean indirect effect for {model_names[model_version]} on winobias dataset, {split} set. Left: filtered, right: unfiltered."
-            else:
-                stat = variation
-                caption = f"Mean indirect effect for {model_names[model_version]} on winogender dataset, using {stat.upper()} as stereotypicality measure. Left: filtered, right: unfiltered."
-            print(f"""
+        print(f"""
 \\begin{{figure*}}
 \\centering
 \\begin{{minipage}}[b]{{.4\\textwidth}}
-\\includegraphics[width=1\\linewidth,trim={{0.5cm 0.5cm 1.5cm 0.5cm}},clip]{{{fnames[0]}}}
+\\vspace{{-1.3em}}
+\\includegraphics[width=1\\linewidth,trim={{0.5cm 0.5cm 0.5cm 0.7cm}},clip]{{{fnames[0]}}}
 \\label{{{fig_names[0]}}}
 \\end{{minipage}}\\qquad
 \\begin{{minipage}}[b]{{.4\\textwidth}}
-\\includegraphics[width=1\\linewidth,trim={{0.5cm 0.5cm 1.5cm 0.5cm}},clip]{{{fnames[1]}}}
+\\vspace{{-1.3em}}
+\\includegraphics[width=1\\linewidth,trim={{0.5cm 0.5cm 0.5cm 0.7cm}},clip]{{{fnames[1]}}}
 \\label{{{fig_names[1]}}}
 \\end{{minipage}}
-\\vspace{{-1em}}
+\\begin{{minipage}}[b]{{.4\\textwidth}}
+\\includegraphics[width=1\\linewidth,trim={{0.5cm 0.5cm 0.5cm 0.7cm}},clip]{{{fnames[2]}}}
+\\label{{{fig_names[2]}}}
+\\end{{minipage}}\\qquad
+\\begin{{minipage}}[b]{{.4\\textwidth}}
+\\includegraphics[width=1\\linewidth,trim={{0.5cm 0.5cm 0.5cm 0.7cm}},clip]{{{fnames[3]}}}
+\\label{{{fig_names[3]}}}
+\\end{{minipage}}
+\\vspace{{-1.6em}}
 \\caption{{{caption}}}
-\\vspace{{-1em}}
+\\vspace{{-2em}}
 \\end{{figure*}}
 """)
 

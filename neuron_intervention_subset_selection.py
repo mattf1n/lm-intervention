@@ -87,11 +87,11 @@ def construct_interventions(base_sent, tokenizer, DEVICE, gender='female'):
 
 def compute_odds_ratio(df, gender='female'):
   if gender == 'female':
-    odds_base = df['candidate2_base_prob'] / df['candidate1_base_prob']
-    odds_intervention = df['candidate2_prob'] / df['candidate1_prob']
-  else:
     odds_base = df['candidate1_base_prob'] / df['candidate2_base_prob']
     odds_intervention = df['candidate1_prob'] / df['candidate2_prob']
+  else:
+    odds_base = df['candidate2_base_prob'] / df['candidate1_base_prob']
+    odds_intervention = df['candidate2_prob'] / df['candidate1_prob']
 
   odds_ratio = odds_intervention / odds_base
   df['odds_ratio'] = odds_ratio
@@ -99,9 +99,9 @@ def compute_odds_ratio(df, gender='female'):
 
 def sort_odds_obj(df):
   df['odds_diff'] = df['odds_ratio'].apply(lambda x: x-1)
-  df['odds_abs'] = df['odds_diff'].apply(lambda x: abs(x))
+  # df['odds_abs'] = df['odds_diff'].apply(lambda x: abs(x))
 
-  df_sorted = df.sort_values(by=['odds_abs'], ascending=False)
+  df_sorted = df.sort_values(by=['odds_diff'], ascending=False)
   return df_sorted
 
 # get global list 
@@ -110,6 +110,7 @@ def get_all_contrib(templates, tokenizer, setting='test'):
   # get marginal contrib to empty set
   female_df = get_intervention_results(templates, tokenizer, gender='female')
   male_df = get_intervention_results(templates, tokenizer, gender='male')
+  gc.collect()
 
   # compute odds ratio differently for each gender
   female_df = compute_odds_ratio(female_df, gender='female')
@@ -121,8 +122,9 @@ def get_all_contrib(templates, tokenizer, setting='test'):
   df_sorted = sort_odds_obj(df)
   layer_list = df_sorted['layer'].values
   neuron_list = df_sorted['neuron'].values
-  pickle.dump(layer_list, open("marg_contrib_layer.pickle", "wb" ))
-  pickle.dump(neuron_list, open("marg_contrib_neuron.pickle", "wb" ))
+
+  pickle.dump(layer_list, open("results/marg_contrib_layer.pickle", "wb" ))
+  pickle.dump(neuron_list, open("results/marg_contrib_neuron.pickle", "wb" ))
   return layer_list, neuron_list
 
 def get_intervention_results(templates, tokenizer, DEVICE='cuda', gender='female',
@@ -141,6 +143,7 @@ def get_intervention_results(templates, tokenizer, DEVICE='cuda', gender='female
     df_template = convert_results_to_pd(interventions, intervention_results, df_layer, df_neuron)
     # calc odds ratio and odds-abs 
     df.append(df_template)
+    gc.collect()
   return pd.concat(df)
 
 def top_k_by_layer(layer, layer_list, neuron_list, k=50):
@@ -161,6 +164,7 @@ def top_k_by_layer(layer, layer_list, neuron_list, k=50):
     male_df = get_intervention_results(templates, tokenizer, gender='male',
                                        layers_to_adj=len(temp_list)*[layer], neurons_to_adj=neurons, intervention_loc='neuron',
                                         df_layer=layer, df_neuron=neurons[0])
+    gc.collect()
 
     # compute odds ratio differently for each gender
     female_df = compute_odds_ratio(female_df, gender='female')
@@ -168,9 +172,9 @@ def top_k_by_layer(layer, layer_list, neuron_list, k=50):
 
     # merge and average
     df = pd.concat([female_df, male_df])
-    odd_abs_list.append(abs(df['odds_ratio'].mean()-1))
+    odd_abs_list.append(df['odds_ratio'].mean()-1)
   
-  pickle.dump(odd_abs_list, open("top_k" + str(layer) + ".pickle", "wb" ) )
+  pickle.dump(odd_abs_list, open("results/top_k" + str(layer) + ".pickle", "wb" ) )
 
 def top_k(layer_list, neuron_list, k=50):
   odd_abs_list = []
@@ -195,8 +199,8 @@ def top_k(layer_list, neuron_list, k=50):
 
     # merge and average
     df = pd.concat([female_df, male_df])
-    odd_abs_list.append(abs(df['odds_ratio'].mean()-1))
-  pickle.dump(odd_abs_list, open("top_k.pickle", "wb" ))
+    odd_abs_list.append(df['odds_ratio'].mean()-1)
+  pickle.dump(odd_abs_list, open("results/top_k.pickle", "wb" ))
 
 
 def greedy_by_layer(layer, k=50):
@@ -218,6 +222,7 @@ def greedy_by_layer(layer, k=50):
     # compute odds ratio differently for each gender
     female_df = compute_odds_ratio(female_df, gender='female')
     male_df = compute_odds_ratio(male_df, gender='male')
+    gc.collect()
 
     # merge and average
     df = pd.concat([female_df, male_df])
@@ -225,7 +230,7 @@ def greedy_by_layer(layer, k=50):
     df_sorted = sort_odds_obj(df)
 
     neurons.append(df_sorted.head(1)['neuron'].values[0])
-    odd_abs_list.append(df_sorted['odds_abs'].values[0])
+    odd_abs_list.append(df_sorted['odds_diff'].values[0])
   pickle.dump(odd_abs_list, open("greedy_" + str(layer) + ".pickle", "wb" ))
   pickle.dump(neurons, open("greedy_neurons_" + str(layer) + ".pickle", "wb" ))
 
@@ -248,6 +253,7 @@ def greedy(k=50):
     # compute odds ratio differently for each gender
     female_df = compute_odds_ratio(female_df, gender='female')
     male_df = compute_odds_ratio(male_df, gender='male')
+    gc.collect()
 
     # merge and average
     df = pd.concat([female_df, male_df])
@@ -256,7 +262,7 @@ def greedy(k=50):
 
     neurons.append(df_sorted.head(1)['neuron'].values[0])
     layers.append(df_sorted.head(1)['layer'].values[0])
-    odd_abs_list.append(df_sorted['odds_abs'].values[0])
+    odd_abs_list.append(df_sorted['odds_diff'].values[0])
 
     # memory issue
     del df
@@ -302,7 +308,68 @@ def random_greedy_by_layer(layer, k=50):
   pickle.dump(odd_abs_list, open("rand_greedy_" + str(layer) + ".pickle", "wb" ))
   pickle.dump(neurons, open("rand_greedy_neurons_" + str(layer) + ".pickle", "wb" ))
 
+def test():
 
+  # odd_abs_list = []
+
+  # # get layer result
+  # for i in range(-1, 12):
+  #   print(i)
+  #   n_list = list(range(768))
+  #   l_list = 768*[i]
+
+  #   neurons = [n_list]  
+  #   # get marginal contrib to empty set
+  #   female_df = get_intervention_results(templates, tokenizer, gender='female',
+  #                                        layers_to_adj=l_list, neurons_to_adj=neurons, intervention_loc='neuron',
+  #                                         df_layer=l_list, df_neuron=neurons[0])
+  #   male_df = get_intervention_results(templates, tokenizer, gender='male',
+  #                                      layers_to_adj=l_list, neurons_to_adj=neurons, intervention_loc='neuron',
+  #                                       df_layer=l_list, df_neuron=neurons[0])
+
+  #   # compute odds ratio differently for each gender
+  #   female_df = compute_odds_ratio(female_df, gender='female')
+  #   male_df = compute_odds_ratio(male_df, gender='male')
+
+  #   # merge and average
+  #   df = pd.concat([female_df, male_df])
+  #   odd_abs_list.append(df['odds_ratio'].mean()-1)
+  # print('layer by layer')
+  # print(odd_abs_list)
+
+  n_list = 13*list(range(768))
+  l_list = []
+  for i in range(-1, 12):
+      l_list += 768*[i]
+
+  neurons = [n_list]  
+  # get marginal contrib to empty set
+  female_df = get_intervention_results(templates, tokenizer, gender='female',
+                                       layers_to_adj=l_list, neurons_to_adj=neurons, intervention_loc='neuron',
+                                        df_layer=l_list, df_neuron=neurons[0])
+  male_df = get_intervention_results(templates, tokenizer, gender='male',
+                                     layers_to_adj=l_list, neurons_to_adj=neurons, intervention_loc='neuron',
+                                      df_layer=l_list, df_neuron=neurons[0])
+
+  # compute odds ratio differently for each gender
+  female_df = compute_odds_ratio(female_df, gender='female')
+  male_df = compute_odds_ratio(male_df, gender='male')
+
+  # merge and average
+  df = pd.concat([female_df, male_df])
+  # print('layer by layer')
+  # print(odd_abs_list)
+  print('total')
+  print(df['odds_ratio'].mean()-1)
+  # pickle.dump(odd_abs_list, open("results/top_k.pickle", "wb" ))
+
+# tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+# model = Model(device='cuda')
+# DEVICE = 'cuda'
+
+# templates = get_template_list()
+
+# test()
 if __name__ == '__main__':
     ap = ArgumentParser(description="Run adversarial training for CIFAR.")
     ap.add_argument('--algo', type=str, choices=['topk', 'greedy', 'random_greedy', 'test'], default='topk')
@@ -317,6 +384,7 @@ if __name__ == '__main__':
     DEVICE = 'cuda'
 
     templates = get_template_list()
+    # templates = ["The {} said that"]
 
     k = args.k
     layer = args.layer
@@ -325,6 +393,8 @@ if __name__ == '__main__':
       # layer_list = pickle.load( open( 'marg_contrib_layer.pickle', "rb" )) 
       # neuron_list = pickle.load( open( 'marg_contrib_neuron.pickle', "rb" )) 
       top_k(layer_list, neuron_list, k)
+      for i in range(-1, 12):
+        top_k_by_layer(i, layer_list, neuron_list, k)
     elif (args.algo == 'topk') and (layer != -1):
       layer_list, neuron_list = get_all_contrib(templates, tokenizer)
       # layer_list = pickle.load( open( 'marg_contrib_layer.pickle', "rb" )) 

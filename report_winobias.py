@@ -18,6 +18,7 @@ def main():
                     continue
                 with open(fname) as f:
                     data = json.load(f)
+                    data['model_version'] = model_version
                     # Populate 'prop_aligned'
                     try:
                         data['prop_aligned'] = data['num_examples_aligned'] / data['num_examples_loaded']
