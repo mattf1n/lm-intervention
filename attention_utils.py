@@ -51,6 +51,8 @@ def perform_intervention(intervention, model, effect_types=('indirect', 'direct'
         effect_head = (odds_intervention_head - odds_base) / odds_base
         effect_layer = (odds_intervention_layer - odds_base) / odds_base
         effect_model = (odds_intervention_model - odds_base) / odds_base
+
+        results[effect_type + "_odds_head"] = odds_intervention_head.tolist()
         results[effect_type + "_effect_head"] = effect_head.tolist()
         results[effect_type + "_effect_layer"] = effect_layer.tolist()
         results[effect_type + "_effect_model"] = effect_model
