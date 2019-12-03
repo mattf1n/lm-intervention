@@ -20,7 +20,7 @@ def main():
     sns.set_context("paper")
     sns.set_style("white")
 
-    palette = sns.color_palette()#('muted')
+    palette = sns.color_palette()
 
     filter = 'filtered'
     split = 'dev'
@@ -52,9 +52,19 @@ def main():
     inds = np.arange(len(models))
     spacing = 0.015
     p1 = plt.bar(inds, te, width, color=palette[2], linewidth=0)
-    p2 = plt.bar(inds + width + spacing, nie_all, width, color=palette[1], linewidth=0)
-    p3 = plt.bar(inds + width + spacing, nde_all, width, bottom=nie_all, color=palette[0], linewidth=0)
+    p2 = plt.bar(inds + width + spacing, nie_all, width, color=palette[4], linewidth=0)
+    p3 = plt.bar(inds + width + spacing, nde_all, width, bottom=nie_all, color=palette[1], linewidth=0)
     p4 = plt.bar(inds + 2 * (width + spacing), nie_sum, width, color=palette[3], linewidth=0)
+
+    # p1 = plt.bar(inds, te, width, color=palette[0], linewidth=0)
+    # p2 = plt.bar(inds + width + spacing, nie_all, width, color=palette[1], linewidth=0)
+    # p3 = plt.bar(inds + width + spacing, nde_all, width, bottom=nie_all, color=palette[2], linewidth=0)
+    # p4 = plt.bar(inds + 2 * (width + spacing), nie_sum, width, color=palette[3], linewidth=0)
+
+    # p1 = plt.bar(inds, te, width, linewidth=0)
+    # p2 = plt.bar(inds + width + spacing, nie_all, width, linewidth=0)
+    # p3 = plt.bar(inds + width + spacing, nde_all, width, bottom=nie_all, linewidth=0)
+    # p4 = plt.bar(inds + 2 * (width + spacing), nie_sum, width, linewidth=0)
 
     plt.ylabel('Effect', size=11)
     # plt.title('Effects of top heads', fontsize=11)
