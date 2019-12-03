@@ -6,6 +6,7 @@ import numpy as np
 from attention_utils import topk_indices
 from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
 from mpl_toolkits.axes_grid1.colorbar import colorbar
+from  matplotlib.colors import LinearSegmentedColormap
 import os
 
 def save_figures(data, source, model_version, filter, suffix, k=10):
@@ -117,8 +118,16 @@ def save_figures(data, source, model_version, filter, suffix, k=10):
             elif model_version == 'gpt2-xl':
                 ax1 = plt.subplot2grid((100, 85), (0, 16), colspan=32, rowspan=75)
                 ax2 = plt.subplot2grid((100, 85), (0, 51), colspan=17, rowspan=75)
-            heatmap = sns.heatmap(effect_head, rasterized=True, ax=ax1, annot=annot, annot_kws={"size": 9}, fmt=".2f",
-                        square=True, cbar=False)
+            # heatmap = sns.heatmap(effect_head, vmin=-0.05, vmax=0.05, rasterized=True, ax=ax1, annot=annot, annot_kws={"size": 9}, fmt=".2f", square=True, cbar=False,cmap=sns.color_palette("coolwarm", 256))
+            # heatmap = sns.heatmap(effect_head, vmin=-0.05, vmax=0.05, ax=ax1, annot=annot, annot_kws={"size": 9}, fmt=".2f", square=True, cbar=False,cmap=sns.color_palette("coolwarm_r", 256), linewidth=0.3)
+            # heatmap = sns.heatmap(effect_head, vmin=-0.05, vmax=0.05, ax=ax1, annot=annot, annot_kws={"size": 9}, fmt=".2f", square=True, cbar=False, linewidth=0.1, linecolor='#DDDDDD',
+            # # cmap = LinearSegmentedColormap.from_list('rg', ["r", "#DDDCDB", "#40bcae"], N=256))
+            # cmap = LinearSegmentedColormap.from_list('rg', ["#F14100", "white", "#3D4FC4"], N=256))
+            heatmap = sns.heatmap(effect_head, center=0.0, ax=ax1, annot=annot, annot_kws={"size": 9}, fmt=".2f", square=True, cbar=False, linewidth=0.1, linecolor='#F1F1F1',
+            # cmap = LinearSegmentedColormap.from_list('rg', ["r", "#DDDCDB", "#40bcae"], N=256))
+            cmap = LinearSegmentedColormap.from_list('rg', ["#F14100", "white", "#3D4FC4"], N=256))
+
+            # https://stackoverflow.com/questions/38246559/how-to-create-a-heat-map-in-python-that-ranges-from-green-to-red
             if do_sort:
                 heatmap.axes.get_xaxis().set_ticks([])
             else:
@@ -146,9 +155,16 @@ def save_figures(data, source, model_version, filter, suffix, k=10):
             # # locate colorbar ticks
             cax.xaxis.set_ticks_position('bottom')
             ax1.set(xlabel='Head', ylabel='Layer', title='Head Effect')
+            for _, spine in ax1.spines.items():
+                spine.set_visible(True)
             ax2.set(title=f'     Layer Effect')
             # sns.set_style("ticks")
-            sns.barplot(x=effect_layer, ax=ax2, y=list(range(n_layers)), color="#4472C4", orient="h")
+            # sns.barplot(x=effect_layer, ax=ax2, y=list(range(n_layers)), color="#4472C4", orient="h")
+            # sns.barplot(x=effect_layer, ax=ax2, y=list(range(n_layers)), color="#3A4BC0", orient="h")
+            # sns.barplot(x=effect_layer, ax=ax2, y=list(range(n_layers)), color="#595959", orient="h")
+            # sns.barplot(x=effect_layer, ax=ax2, y=list(range(n_layers)), color="#40bcae", orient="h")
+            sns.barplot(x=effect_layer, ax=ax2, y=list(range(n_layers)), color="#3D4FC4", orient="h")
+            # sns.barplot(x=effect_layer, ax=ax2, y=list(range(n_layers)), color="g", orient="h")
             # ax2.set_frame_on(False)
             ax2.set_yticklabels([])
             ax2.spines['top'].set_visible(False)
@@ -172,7 +188,7 @@ def main():
     filters = ['filtered', 'unfiltered']
 
     # For testing:
-    #
+    # #
     # model_version = 'gpt2'
     # split = 'dev'
     # filter = 'filtered'

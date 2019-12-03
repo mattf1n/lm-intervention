@@ -6,6 +6,7 @@ from transformers import GPT2Model, GPT2Tokenizer
 from operator import itemgetter
 import math
 import numpy as np
+import matplotlib.patches as patches
 
 BLACK = '#000000'
 GRAY = '#303030'
@@ -14,6 +15,8 @@ def save_fig(prompts, heads, model, tokenizer, fname, device, highlight_indices=
     palette = sns.color_palette('muted')
     # plt.subplots_adjust(bottom=.2)
     plt.rc('text', usetex=True)
+    # plt.rcParams["axes.edgecolor"] = "black"
+    # plt.rcParams["axes.linewidth"] = 1
     fig, axs = plt.subplots(1, 2, sharey=False, figsize=(5, 4))
     axs[0].yaxis.set_ticks_position('none')
     plt.rcParams.update({'axes.titlesize': 'xx-large'})
@@ -91,13 +94,22 @@ def save_fig(prompts, heads, model, tokenizer, fname, device, highlight_indices=
         ax.tick_params(axis='x', which='major', pad=0)
         # if g_index == 0:
         #     ax.legend(plts, head_names, ncol=3, fontsize=12, handlelength=.9, handletextpad=.3, labelspacing = 0.15,
-        #               borderpad=0.2, loc='upper center')#, bbox_to_anchor=[.4, .025], bbox_transform=plt.gcf().transFigure)  #)bbox_to_anchor=[0.1, 0.17])
+        #               borderpad=0.2, loc='upper center')#, bbox_to_anchor=[.4, .025], bbox_transform=plt.gcf().transFigure)
+        #               #)bbox_to_anchor=[0.1, 0.17])
 
     # fig.legend(handles, labels, loc='upper center')
     # plt.figlegend(plts, head_names,(1.04, 0), ncol=3, fontsize=12, handlelength=.9, handletextpad=.3)#, bbox_to_anchor=(0.5, 1.05))
-    lgd = plt.figlegend(plts, head_names,'lower center', ncol=3, fontsize=11, borderpad=0.5, handlelength=.9,  bbox_to_anchor=(0.5, 0))
+    lgd = plt.figlegend(plts, head_names,'lower center', fontsize=11, borderpad=0.5, handlelength=.9,
+                        handletextpad=.3, labelspacing = 0.15, bbox_to_anchor=(0.87, 0.092))
     # plt.tight_layout()
+    # rect = patches.Rectangle((4, 4), 4, 4, linewidth=2, edgecolor='r', facecolor='none')
+    #
+    # # Add the patch to the Axes
+    # ax = plt.gca()
+    # ax.add_patch(rect)
     plt.savefig(fname, format='pdf', bbox_extra_artists = (lgd,), bbox_inches = 'tight')
+
+
     plt.close()
 
 
@@ -114,7 +126,7 @@ def main():
         'distilgpt2': [(3,1), (2,6), (3,6)]
     }
 
-    # # For testing only:
+    # For testing only:
     # top_heads = {
     #     'gpt2': [(5, 8), (5, 10), (4, 6)]
     # }
@@ -148,7 +160,8 @@ def main():
                     highlight_indices = None
                 fname = f'results/attention_intervention/qualitative/winobias_{model_version}_{filter}_{split}_{result_index}.pdf'
                 save_fig(prompts, heads, model, tokenizer, fname, device, highlight_indices)
-                # break
+                # For testing only:
+                break
 
 
 if __name__ == '__main__':
