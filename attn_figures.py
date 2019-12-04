@@ -123,7 +123,7 @@ def save_figures(data, source, model_version, filter, suffix, k=10):
             # heatmap = sns.heatmap(effect_head, vmin=-0.05, vmax=0.05, ax=ax1, annot=annot, annot_kws={"size": 9}, fmt=".2f", square=True, cbar=False, linewidth=0.1, linecolor='#DDDDDD',
             # # cmap = LinearSegmentedColormap.from_list('rg', ["r", "#DDDCDB", "#40bcae"], N=256))
             # cmap = LinearSegmentedColormap.from_list('rg', ["#F14100", "white", "#3D4FC4"], N=256))
-            heatmap = sns.heatmap(effect_head, center=0.0, ax=ax1, annot=annot, annot_kws={"size": 9}, fmt=".2f", square=True, cbar=False, linewidth=0.1, linecolor='#F1F1F1',
+            heatmap = sns.heatmap(effect_head, center=0.0, ax=ax1, annot=annot, annot_kws={"size": 9}, fmt=".2f", square=True, cbar=False, linewidth=0.1, linecolor='#D0D0D0',
             # cmap = LinearSegmentedColormap.from_list('rg', ["r", "#DDDCDB", "#40bcae"], N=256))
             cmap = LinearSegmentedColormap.from_list('rg', ["#F14100", "white", "#3D4FC4"], N=256))
 
@@ -188,7 +188,7 @@ def main():
     filters = ['filtered', 'unfiltered']
 
     # For testing:
-    # #
+    #
     # model_version = 'gpt2'
     # split = 'dev'
     # filter = 'filtered'
