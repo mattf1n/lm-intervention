@@ -10,11 +10,11 @@ def main():
 
     models = ['distilgpt2', 'gpt2', 'gpt2-medium', 'gpt2-large', 'gpt2-xl']
     model_to_name = {
-        'distilgpt2': 'distill',
+        'distilgpt2': 'distil',
         'gpt2': 'small',
         'gpt2-medium': 'medium',
         'gpt2-large': 'large',
-        'gpt2-xl': 'XL'
+        'gpt2-xl': 'xl'
     }
 
     sns.set_context("paper")
@@ -75,6 +75,8 @@ def main():
     # plt.yticks(np.arange(0, 81, 10))
     # p3 = plt.axhline(data['mean_total_effect'], linestyle='--')
     plt.legend((p1[0], p3[0], p2[0], p4[0]), ('TE', 'NDE-all', 'NIE-all', 'NIE-sum'), loc='upper left', fontsize=11)
+    sns.despine()
+
     plt.savefig(f'results/attention_intervention/effects.pdf', format='pdf')
     plt.close()
 
