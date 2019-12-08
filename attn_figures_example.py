@@ -17,7 +17,7 @@ def save_fig(prompts, heads, model, tokenizer, fname, device, highlight_indices=
     plt.rc('text', usetex=True)
     # plt.rcParams["axes.edgecolor"] = "black"
     # plt.rcParams["axes.linewidth"] = 1
-    fig, axs = plt.subplots(1, 2, sharey=False, figsize=(5, 4))
+    fig, axs = plt.subplots(1, 2, sharey=False, figsize=(3.3, 1.95))
     axs[0].yaxis.set_ticks_position('none')
     plt.rcParams.update({'axes.titlesize': 'xx-large'})
     attentions = []
@@ -87,26 +87,32 @@ def save_fig(prompts, heads, model, tokenizer, fname, device, highlight_indices=
         ax.set_xlim([0, xlim_upper])
         ax.set_xticks([0, xlim_upper])
         ax.invert_yaxis()
-        plt.setp(ax.get_yticklabels(), fontsize=14, ha='right')
+        plt.setp(ax.get_yticklabels(), fontsize=8, ha='right')
         ax.set_xticks([0, 0.5])
-        plt.setp(ax.get_xticklabels(), fontsize=12)
+        plt.setp(ax.get_xticklabels(), fontsize=7)
         sns.despine(left=True, bottom=True)
-        ax.tick_params(axis='x', which='major', pad=0)
+        ax.tick_params(axis='x', pad=0, length=0)
+        ax.tick_params(axis='y', pad=0)
         # if g_index == 0:
         #     ax.legend(plts, head_names, ncol=3, fontsize=12, handlelength=.9, handletextpad=.3, labelspacing = 0.15,
         #               borderpad=0.2, loc='upper center')#, bbox_to_anchor=[.4, .025], bbox_transform=plt.gcf().transFigure)
         #               #)bbox_to_anchor=[0.1, 0.17])
 
+        ax.yaxis.labelpad = 0
+        ax.xaxis.labelpad = 0
+
+
     # fig.legend(handles, labels, loc='upper center')
     # plt.figlegend(plts, head_names,(1.04, 0), ncol=3, fontsize=12, handlelength=.9, handletextpad=.3)#, bbox_to_anchor=(0.5, 1.05))
-    lgd = plt.figlegend(plts, head_names,'lower center', fontsize=11, borderpad=0.5, handlelength=.9,
-                        handletextpad=.3, labelspacing = 0.15, bbox_to_anchor=(0.87, 0.092))
+    lgd = plt.figlegend(plts, head_names,'lower center', fontsize=7, borderpad=0.5, handlelength=.9,
+                        handletextpad=.3, labelspacing = 0.15, bbox_to_anchor=(0.86, 0.11))
     # plt.tight_layout()
     # rect = patches.Rectangle((4, 4), 4, 4, linewidth=2, edgecolor='r', facecolor='none')
     #
     # # Add the patch to the Axes
     # ax = plt.gca()
     # ax.add_patch(rect)
+
     plt.savefig(fname, format='pdf', bbox_extra_artists = (lgd,), bbox_inches = 'tight')
 
 
@@ -125,14 +131,12 @@ def main():
         'gpt2-large':[(16,19), (16,5), (15,6)],
         'distilgpt2': [(3,1), (2,6), (3,6)]
     }
-
-    # For testing only:
-    # top_heads = {
-    #     'gpt2': [(5, 8), (5, 10), (4, 6)]
-    # }
+    models = ['gpt2', 'gpt2-medium', 'gpt2-xl', 'gpt2-large', 'distilgpt2']
 
     split = 'dev'
-    for model_version, heads in top_heads.items():
+    testing = False
+    for model_version in models:
+        heads = top_heads[model_version]
         if model_version == 'distilgpt2':
             filter = 'unfiltered' # In order to get canonical example
         else:
@@ -161,7 +165,10 @@ def main():
                 fname = f'results/attention_intervention/qualitative/winobias_{model_version}_{filter}_{split}_{result_index}.pdf'
                 save_fig(prompts, heads, model, tokenizer, fname, device, highlight_indices)
                 # For testing only:
-                break
+                if testing:
+                    break
+        if testing:
+            break
 
 
 if __name__ == '__main__':
