@@ -25,10 +25,13 @@ def save_fig(prompts, heads, model, tokenizer, fname, device, highlight_indices=
     seqs = []
     for g_index in range(2):
         prompt = prompts[g_index]
+        print(prompt)
         input_ = tokenizer.encode(prompt)
+        print(input_)
         batch = torch.tensor(input_).unsqueeze(0).to(device)
         attention = model(batch)[-1]
         seq = tokenizer.convert_ids_to_tokens(input_)
+        print(seq)
         seq = [t.replace('Ġ', '') for t in seq]
         seqs.append(seq)
         seq_len = len(input_)
@@ -50,25 +53,39 @@ def save_fig(prompts, heads, model, tokenizer, fname, device, highlight_indices=
         formatted_seq = []
         if highlight_indices:
             for i, t in enumerate(seq):
-                if i in highlight_indices:
-                    if i == highlight_indices[g_index]:
-                        t = f"\\textbf{{{t}}}"
-                    else:
-                        t = f"\\underline{{{t}}}"
-                formatted_seq.append(t)
+                # Add invisible underline to get spacing right
+                # formatted_t = f"\\setul{{.3ex}}{{.001ex}}\\ul{{{t}}}"
+                formatted_t = t
+                for j in range(2):
+                    if i in highlight_indices[j]:
+                        if j == g_index:
+                            # formatted_t = f"\\raisebox{{2 em}}{{\\textbf{{{t}}}}}"
+                            # formatted_t = f"\\setul{{.3ex}}{{.001ex}}{{\\textbf{{\\underline{{{t}}}}}"
+                            formatted_t = f"\\textbf{{{t}}}"
+                        else:
+                            formatted_t = f"\\setul{{.001ex}}{{.1ex}}\\ul{{{t}}}"
+                            # formatted_t = f"\\underline{{\\smash{{{t}}}}}"
+                            # t = f"\setul{{1pt}}{{.4pt}}\\ul{{{t}}}"
+                            # t = f"\\underline{{{t}}}"
+                        break
+
+                formatted_seq.append(formatted_t)
             formatted_seq[-1] = f"\\textbf{{{formatted_seq[-1]}}}"
         else:
             formatted_seq = seq
-
+        print('formatted', formatted_seq)
         plts = []
         left = None
         for i, (layer, head) in enumerate(heads):
             attn_last_word = attention[layer][head][-1].numpy()
-
+            seq_placeholders = [f'a{i}' for i in range(len(formatted_seq))]
             if left is None:
-                p = ax.barh(formatted_seq, attn_last_word, color=palette[i], linewidth=0)
+                print(attn_last_word)
+                p = ax.barh(seq_placeholders, attn_last_word, color=palette[i], linewidth=0)
             else:
-                p = ax.barh(formatted_seq, attn_last_word, left=left, color=palette[i], linewidth=0)
+                p = ax.barh(seq_placeholders, attn_last_word, left=left, color=palette[i], linewidth=0)
+            print(ax.get_yticklabels())
+            ax.set_yticklabels(formatted_seq)
             if left is None:
                 left = np.zeros_like(attn_last_word)
             left += attn_last_word
@@ -123,7 +140,15 @@ def main():
     sns.set_context("paper")
     sns.set_style("white")
     device = 'cpu'
-
+    plt.rc('text', usetex=True)
+    plt.rcParams.update({
+        "text.latex.preamble": [
+            "\\usepackage{color}",  #
+            "\\usepackage{soul}",
+            "\\setulcolor{blue}"#
+            #		 "\\DeclareMathSizes{18}{34}{14}{12}"
+        ]
+    })
     top_heads = {
         'gpt2':[(5, 8), (5, 10), (4,6)],
         'gpt2-medium': [(10, 9), (6, 15), (10,12)],
@@ -132,6 +157,19 @@ def main():
         'distilgpt2': [(3,1), (2,6), (3,6)]
     }
     models = ['gpt2', 'gpt2-medium', 'gpt2-xl', 'gpt2-large', 'distilgpt2']
+
+    examples_to_highlight = {
+        "The guard appreciated getting treatment from the nurse": [[7], [1]],
+        "The driver transported the housekeeper to the job because": [[4,5], [1]],
+        "The manager promised to give a raise to the teacher": [[9], [1]],
+        "The driver never drove the librarian anywhere": [[5,6], [1]],
+        "The nurse examined the farmer for injuries because": [[1], [4]],
+        "The CEO ordered the cleaner out of the room": [[4],[1]],
+        "The hairdresser shouted at the driver because": [[1,2,3,4],[8]],
+        "The chief demanded an apology from the teacher because": [[7], [1]],
+        "The physician examined the auditor for sores because": [[4],[1]],
+        "The laborer dug a hole for the assistant because": [[8],[1,2]]
+    }
 
     split = 'dev'
     testing = False
@@ -155,13 +193,15 @@ def main():
             model.eval()
             for result_index, result in enumerate(results_by_ratio):
                 prompts = (result['base_string1'], result['base_string2'])
+                highlight_indices = None
+                for example, indices in examples_to_highlight.items():
+                    if example in prompts[0]:
+                        highlight_indices = indices
+                        break
 
-                if "The nurse examined the farmer for injuries because"in prompts[0]:
-                    highlight_indices = [1, 4]
-                    fname = f'results/attention_intervention/qualitative/winobias_{model_version}_main.pdf'
-                    save_fig(prompts, heads, model, tokenizer, fname, device, highlight_indices)
-                else:
-                    highlight_indices = None
+                    # fname = f'results/attention_intervention/qualitative/winobias_{model_version}_main.pdf'
+                    # save_fig(prompts, heads, model, tokenizer, fname, device, highlight_indices)
+                # else:
                 fname = f'results/attention_intervention/qualitative/winobias_{model_version}_{filter}_{split}_{result_index}.pdf'
                 save_fig(prompts, heads, model, tokenizer, fname, device, highlight_indices)
                 # For testing only:
