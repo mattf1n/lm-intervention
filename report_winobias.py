@@ -7,7 +7,7 @@ import os
 def main():
     fields = ['model_version', 'do_filter', 'split', 'mean_total_effect', 'mean_model_indirect_effect',
               'mean_model_direct_effect', 'mean_sum_indirect_effect', 'prop_aligned', 'num_examples_loaded',
-              'num_examples_analyzed']
+              'num_examples_analyzed', 'prop all - sum']
     t = PrettyTable(fields)
     for filter in ['filtered', 'unfiltered']:
         for model_version in ['distilgpt2', 'gpt2', 'gpt2-medium', 'gpt2-large', 'gpt2-xl', 'gpt2_random']:
@@ -30,6 +30,8 @@ def main():
                     # Convert to shape (num_examples X num_layers X num_heads)
                     indirect_by_head = np.stack(df['indirect_effect_head'].to_numpy())
                     data['mean_sum_indirect_effect'] = indirect_by_head.sum(axis=(1, 2)).mean()
+                    data['prop all - sum'] = (data['mean_model_indirect_effect'] - data['mean_sum_indirect_effect']) / \
+                                             data['mean_model_indirect_effect']
                     try:
                         t.add_row([data.get(field, '') for field in fields])
                     except (KeyError, AttributeError):
