@@ -5,6 +5,8 @@ import json
 import winobias
 import math
 import csv
+import sklearn
+from scipy.stats import pearsonr
 
 def winobias_figure():
 
@@ -29,11 +31,14 @@ def winobias_figure():
                 female_pcts.append(female_pct)
                 occupations.append((occupation, female_pct))
         assert len(female_pcts) == 2
-        female_pct_ratio =  max(female_pcts) / min(female_pcts)
+        female_pct_of_female_occ = max(female_pcts)
+        female_pct_of_male_occ = min(female_pcts)
+        female_pct_ratio =  female_pct_of_female_occ / female_pct_of_male_occ # Ratio of female stereotypicality of female occupation to female stereotypicality of male occupation
         print(occupations, female_pct_ratio, result['total_effect'])
         x.append(math.log(female_pct_ratio))
         y.append(math.log(result['total_effect']))
 
+    print("Pearson", pearsonr(x, y))
     plt.figure(figsize=(10,3))
     # ax = sns.lineplot(x,
     #              y,
@@ -47,7 +52,7 @@ def winobias_figure():
     sns.despine()
     plt.show()
 
-def winogender_figure():
+def winogender_figure(stats):
 
     bergsma_pct_female = {}
     bls_pct_female = {}
@@ -62,7 +67,8 @@ def winogender_figure():
     sns.set_style("white")
 
     model_version = 'gpt2'
-    stats = 'bergsma'
+    # stats = 'bergsma'
+    print(stats.upper())
     filter = 'filtered'
     fname = f"winogender_data/attention_intervention_{stats}_{model_version}_{filter}.json"
     with open(fname) as f:
@@ -79,11 +85,15 @@ def winogender_figure():
                 female_pcts.append(female_pct)
                 occupations.append(occupation)
         assert len(female_pcts) == 1
-        female_pcts.append(0.5) # Assume the participant is 50% likely to be female
-        female_pct_ratio =  max(female_pcts) / min(female_pcts)
-        print(occupations, female_pct, result['total_effect'])
+        female_pcts.append(50) # Assume the participant is 50% likely to be female
+        female_pct_of_female_role = max(female_pcts)
+        female_pct_of_male_role = min(female_pcts)
+        female_pct_ratio = female_pct_of_female_role / female_pct_of_male_role
+        print(occupations, female_pcts[0], female_pct_ratio, result['total_effect'])
         x.append(math.log(female_pct_ratio))
         y.append(math.log(result['total_effect']))
+
+    print("Pearson", pearsonr(x, y))
 
     plt.figure(figsize=(10,3))
     ax = sns.scatterplot(x,
@@ -114,4 +124,5 @@ def winogender_figure():
 #                                   'log-odds': np.log(y_vals)})
 #
 
+# winogender_figure('bergsma')
 winobias_figure()
