@@ -19,6 +19,7 @@ def main():
 
     sns.set_context("paper")
     sns.set_style("white")
+    mpl.rcParams['hatch.linewidth'] = 0.3
 
     palette = sns.color_palette()
 
@@ -47,14 +48,17 @@ def main():
         model_names.append(model_to_name[model_version])
 
     # Plot stacked bar chart
-    plt.figure(num=1, figsize=(5, 3))
+    plt.figure(num=1, figsize=(3, 1.2))
     width = .29
     inds = np.arange(len(models))
     spacing = 0.015
-    p1 = plt.bar(inds, te, width, color=palette[2], linewidth=0)
-    p2 = plt.bar(inds + width + spacing, nie_all, width, color=palette[4], linewidth=0)
-    p3 = plt.bar(inds + width + spacing, nde_all, width, bottom=nie_all, color=palette[1], linewidth=0)
-    p4 = plt.bar(inds + 2 * (width + spacing), nie_sum, width, color=palette[3], linewidth=0)
+    p1 = plt.bar(inds, te, width, color=palette[2], linewidth=0, hatch='/////', edgecolor='darkgreen')
+    p2 = plt.bar(inds + width + spacing, nie_all, width, color=palette[4], linewidth=0, hatch='\\\\\\',
+                 edgecolor='#4E456D')
+    p3 = plt.bar(inds + width + spacing, nde_all, width, bottom=nie_all, color=palette[1], linewidth=0,
+                 hatch='----', edgecolor='#BB592D')
+    p4 = plt.bar(inds + 2 * (width + spacing), nie_sum, width, color=palette[3], linewidth=0, hatch='///',
+                 edgecolor='darkred')
 
     # p1 = plt.bar(inds, te, width, color=palette[0], linewidth=0)
     # p2 = plt.bar(inds + width + spacing, nie_all, width, color=palette[1], linewidth=0)
@@ -65,18 +69,24 @@ def main():
     # p2 = plt.bar(inds + width + spacing, nie_all, width, linewidth=0)
     # p3 = plt.bar(inds + width + spacing, nde_all, width, bottom=nie_all, linewidth=0)
     # p4 = plt.bar(inds + 2 * (width + spacing), nie_sum, width, linewidth=0)
-
-    plt.ylabel('Effect', size=11)
+    plt.gca().tick_params(axis='x', pad=0)
+    plt.gca().tick_params(axis='y', pad=0)
+    plt.gca().yaxis.labelpad = 3
+    plt.ylabel('Effect', size=9)
     # plt.title('Effects of top heads', fontsize=11)
-    plt.xticks(inds + .3, model_names, size=10)
+    plt.xticks(inds + .3, model_names, size=7)
     for tick in plt.gca().xaxis.get_minor_ticks():
         tick.label1.set_horizontalalignment('center')
-    plt.yticks(size=10)
+    plt.yticks(size=7)
     # plt.yticks(np.arange(0, 81, 10))
     # p3 = plt.axhline(data['mean_total_effect'], linestyle='--')
-    plt.legend((p1[0], p3[0], p2[0], p4[0]), ('TE', 'NDE-all', 'NIE-all', 'NIE-sum'), loc='upper left', fontsize=11)
+    leg = plt.legend((p1[0], p3[0], p2[0], p4[0]), ('TE', 'NDE-all', 'NIE-all', 'NIE-sum'), loc='upper left', fontsize=7)
+    for patch in leg.get_patches():
+        patch.set_height(7)
+        patch.set_y(-1)
     sns.despine()
-
+    # plt.tight_layout()
+    plt.subplots_adjust(left=0.08, right=0.99, top=0.99, bottom=0.15)
     plt.savefig(f'results/attention_intervention/effects.pdf', format='pdf')
     plt.close()
 

@@ -63,7 +63,7 @@ def save_fig(prompts, heads, model, tokenizer, fname, device, highlight_indices=
                             # formatted_t = f"\\setul{{.3ex}}{{.001ex}}{{\\textbf{{\\underline{{{t}}}}}"
                             formatted_t = f"\\textbf{{{t}}}"
                         else:
-                            formatted_t = f"\\setul{{.001ex}}{{.1ex}}\\ul{{{t}}}"
+                            formatted_t = f"\\setul{{.15ex}}{{.2ex}}\\ul{{{t}}}"
                             # formatted_t = f"\\underline{{\\smash{{{t}}}}}"
                             # t = f"\setul{{1pt}}{{.4pt}}\\ul{{{t}}}"
                             # t = f"\\underline{{{t}}}"
@@ -92,7 +92,7 @@ def save_fig(prompts, heads, model, tokenizer, fname, device, highlight_indices=
 
             if highlight_indices:
                 for i in range(seq_len):
-                    if highlight_indices[g_index] == i:
+                    if i in highlight_indices[g_index]:
                         color = BLACK
                     else:
                         color = GRAY
