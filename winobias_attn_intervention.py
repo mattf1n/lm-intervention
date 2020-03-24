@@ -3,6 +3,7 @@ import fire
 import winobias
 from experiment import Model
 from transformers import GPT2Tokenizer
+from transformers import TransfoXLTokenizer ### NEW
 import json
 from pandas import DataFrame
 
@@ -45,7 +46,13 @@ def get_interventions_winobias(gpt2_version, do_filter, split, model, tokenizer,
 
 def intervene_attention(gpt2_version, do_filter, split, device='cuda', filter_quantile=0.25, random_weights=False):
     model = Model(output_attentions=True, gpt2_version=gpt2_version, device=device, random_weights=random_weights)
-    tokenizer = GPT2Tokenizer.from_pretrained(gpt2_version)
+    ### New ###
+    if model.is_txl:
+        print('****** NEW: Using TransoXL tokenizer')
+        tokenizer = TransfoXLTokenizer.from_pretrained('transfo-xl-wt103')
+    else:
+        tokenizer = GPT2Tokenizer.from_pretrained(gpt2_version)
+    ### New ###
 
     interventions, json_data = get_interventions_winobias(gpt2_version, do_filter, split, model, tokenizer,
                                                             device, filter_quantile)
@@ -57,6 +64,9 @@ def intervene_attention(gpt2_version, do_filter, split, device='cuda', filter_qu
     if random_weights:
         gpt2_version += '_random'
     fname = f"winobias_data/attention_intervention_{gpt2_version}_{filter_name}_{split}.json"
+    ### New ###
+    fname = f"mano_testinis_attention_intervention_{gpt2_version}_{filter_name}_{split}.json"
+    ### New ###
     json_data['results'] = results
     with open(fname, 'w') as f:
         json.dump(json_data, f)

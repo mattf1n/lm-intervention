@@ -1,4 +1,3 @@
-
 import torch
 # import torch.nn as nn
 import torch.nn.functional as F
@@ -17,7 +16,9 @@ import statistics
 # import matplotlib.pyplot as plt
 from utils import batch, convert_results_to_pd
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
+from transformers import TransfoXLLMHeadModel, TransfoXLTokenizer, TransfoXLConfig ### NEW
 from gpt2_attention import AttentionOverride
+from txl_attention import TXLAttentionOverride ### NEW
 
 # sns.set(style="ticks", color_codes=True)
 
@@ -72,23 +73,47 @@ class Model():
                  gpt2_version='gpt2'):
         super()
         self.device = device
-        self.model = GPT2LMHeadModel.from_pretrained(
-            gpt2_version,
-            output_attentions=output_attentions)
+        ### New ###
+        self.is_txl = gpt2_version == 'transfo-xl-wt103'
+        if self.is_txl:
+            print('****** NEW: Using TransoXL model')
+            configuration = TransfoXLConfig(mem_len=16, output_attentions=output_attentions)
+            self.model = TransfoXLLMHeadModel.from_pretrained(
+                'transfo-xl-wt103',
+                config=configuration)
+        else:
+            self.model = GPT2LMHeadModel.from_pretrained(
+                gpt2_version,
+                output_attentions=output_attentions)
+        ### New ###
+
         self.model.eval()
         self.model.to(device)
         if random_weights:
             print('Randomizing weights')
             self.model.init_weights()
 
-        # Options
-        self.top_k = 5
-        # 12 for GPT-2
-        self.num_layers = len(self.model.transformer.h)
-        # 768 for GPT-2
-        self.num_neurons = self.model.transformer.wte.weight.shape[1]
-        # 12 for GPT-2
-        self.num_heads = self.model.transformer.h[0].attn.n_head
+        ### New ###
+        if self.is_txl:
+            # Options
+            self.top_k = 5
+            # 12 for GPT-2
+            self.num_layers = len(self.model.transformer.layers)
+            # 768 for GPT-2
+            self.num_neurons = self.model.transformer.d_model
+            # 12 for GPT-2
+            self.num_heads = self.model.transformer.n_head
+        else:
+            # # Options
+            self.top_k = 5
+            # 12 for GPT-2
+            self.num_layers = len(self.model.transformer.h)
+            # 768 for GPT-2
+            self.num_neurons = self.model.transformer.wte.weight.shape[1]
+            # 12 for GPT-2
+            self.num_heads = self.model.transformer.h[0].attn.n_head
+        ### New ###
+
 
     def get_representations(self, context, position):
         # Hook for saving the representation
@@ -285,11 +310,25 @@ class Model():
                                 Shape is [batch_size, num_heads, seq_len, seq_len]>
                 }
         """
-
         def intervention_hook(module, input, outputs, attn_override, attn_override_mask):
             attention_override_module = AttentionOverride(
                 module, attn_override, attn_override_mask)
             outputs[:] = attention_override_module(*input)
+
+        ### NEW ###
+        def txl_intervention_hook(module, input, outputs, attn_override, attn_override_mask):
+            attention_override_module = TXLAttentionOverride(
+                module, attn_override, attn_override_mask)
+
+            batch_size = attn_override.shape[0]
+            q_len = input[0].shape[0]
+            mem_len = self.model.transformer.mem_len
+            mems = torch.zeros((mem_len, batch_size, self.model.transformer.d_model), device=self.device)
+            all_ones = torch.ones((q_len, mem_len + q_len), dtype=torch.uint8, device=self.device)
+            attn_mask = (torch.triu(all_ones, 1 + mem_len) + torch.tril(all_ones, 0))[:, :, None]
+
+            outputs[:] = attention_override_module(*input, attn_mask=attn_mask, mems=mems)
+        ### NEW ###
 
         with torch.no_grad():
             hooks = []
@@ -297,8 +336,16 @@ class Model():
                 attn_override = d['attention_override']
                 attn_override_mask = d['attention_override_mask']
                 layer = d['layer']
-                hooks.append(self.model.transformer.h[layer].attn.register_forward_hook(
-                    partial(intervention_hook, attn_override=attn_override, attn_override_mask=attn_override_mask)))
+                ### NEW ###
+                if self.is_txl:
+                    hooks.append(self.model.transformer.layers[layer].dec_attn.register_forward_hook(
+                        partial(txl_intervention_hook,
+                                attn_override=attn_override,
+                                attn_override_mask=attn_override_mask)))
+                else:
+                    hooks.append(self.model.transformer.h[layer].attn.register_forward_hook(
+                        partial(intervention_hook, attn_override=attn_override, attn_override_mask=attn_override_mask)))
+                ### NEW ###
 
             new_probabilities = self.get_probabilities_for_examples_multitoken(
                 context,
@@ -319,7 +366,7 @@ class Model():
         word2intervention_results = {}
         for word in tqdm(word2intervention, desc='words'):
             word2intervention_results[word] = self.neuron_intervention_single_experiment(
-                word2intervention[word], intervention_type, layers_to_adj, neurons_to_adj, 
+                word2intervention[word], intervention_type, layers_to_adj, neurons_to_adj,
                 alpha, intervention_loc=intervention_loc)
 
         return word2intervention_results
@@ -438,7 +485,7 @@ class Model():
                 for neuron, (p1, p2) in zip(neurons, probs):
                     candidate1_probs[0][neuron] = p1
                     candidate2_probs[0][neuron] = p2
-            else: 
+            else:
               probs = self.neuron_intervention(
                         context=context,
                         outputs=intervention.candidates_tok,
@@ -477,12 +524,20 @@ class Model():
         batch = torch.tensor(input).unsqueeze(0).to(self.device)
         attention_override = self.model(batch)[-1]
 
-        batch_size = 1
-        seq_len = len(x)
-        seq_len_alt = len(x_alt)
-        assert seq_len == seq_len_alt
-        assert len(attention_override) == self.num_layers
-        assert attention_override[0].shape == (batch_size, self.num_heads, seq_len, seq_len)
+        ### NEW ###
+        if self.is_txl:
+            batch_size = 1
+            seq_len = len(x)
+            seq_len_alt = len(x_alt)
+            assert seq_len == seq_len_alt
+        else:
+            batch_size = 1
+            seq_len = len(x)
+            seq_len_alt = len(x_alt)
+            assert seq_len == seq_len_alt
+            assert len(attention_override) == self.num_layers
+            assert attention_override[0].shape == (batch_size, self.num_heads, seq_len, seq_len)
+        ### NEW ###
 
         with torch.no_grad():
 
@@ -499,6 +554,7 @@ class Model():
             # Intervene at every layer and head by overlaying attention induced by x_alt
             model_attn_override_data = [] # Save layer interventions for model-level intervention later
             for layer in range(self.num_layers):
+                print(f'intervening on layer {layer} / {self.num_layers}, # heads: {self.num_heads}')
                 layer_attention_override = attention_override[layer]
                 attention_override_mask = torch.ones_like(layer_attention_override, dtype=torch.uint8)
                 layer_attn_override_data = [{
@@ -614,12 +670,12 @@ class Model():
                           for override in model_attn_override_data:
                               if override['layer'] != layer:
                                   model_attn_override_data_search.append(override)
-                                  
+
                           candidate1_probs_head[layer][head], candidate2_probs_head[layer][head] = self.attention_intervention(
                               context=context,
                               outputs=intervention.candidates_tok,
                               attn_override_data=model_attn_override_data_search)
-                    else: 
+                    else:
                         candidate1_probs_head[layer][head] = -1
                         candidate2_probs_head[layer][head] = -1
 

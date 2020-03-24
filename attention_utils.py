@@ -208,6 +208,3 @@ if __name__ == "__main__":
 
     results = perform_interventions(interventions, model)
     report_interventions_summary_by_layer(results)
-
-
-
