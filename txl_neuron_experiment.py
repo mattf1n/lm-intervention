@@ -127,19 +127,9 @@ def run_all(model_type="gpt2", device="cuda", out_dir=".", random_weights=False,
 
 
 if __name__ == "__main__":
-    if not (len(sys.argv) == 4 or len(sys.argv) == 5 or len(sys.argv) == 6):
-        print("USAGE: python ", sys.argv[0], "<model> <device> <out_dir> [<random_weights>] [<template_indices>]")
-        print('<template_indices> is an optional comma-separated list of indices of templates to use, 1-indexed')
-    model = sys.argv[1] # cpu vs cuda
-    device = sys.argv[2] # gpt2, gpt2-medium, gpt2-large
-    out_dir = sys.argv[3] # dir to write results
+    # model = 'transfo-xl-wt103'
+    model = 'gpt2'
+    device = 'cuda'
+    out_dir = 'txl_results/neuron_intervention'
 
-    random_weights = False
-    if sys.argv[4] and sys.argv[4] == 'true':
-        random_weights = True
-
-    template_indices = None
-    if sys.argv[5]:
-        template_indices = [int(ind) for ind in sys.argv[5].split(',')]
-
-    run_all(model, device, out_dir, random_weights=random_weights, template_indices=template_indices)
+    run_all(model, device, out_dir)

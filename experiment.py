@@ -76,7 +76,7 @@ class Model():
         ### New ###
         self.is_txl = gpt2_version == 'transfo-xl-wt103'
         if self.is_txl:
-            print('****** NEW: Using TransoXL model')
+            print('****** NEW: Using TransfoXL model')
             configuration = TransfoXLConfig(mem_len=16, output_attentions=output_attentions)
             self.model = TransfoXLLMHeadModel.from_pretrained(
                 'transfo-xl-wt103',
@@ -228,7 +228,10 @@ class Model():
                 raise ValueError(f"Invalid intervention_type: {intervention_type}")
             # Overwrite values in the output
             # First define mask where to overwrite
-            scatter_mask = torch.zeros_like(output).byte()
+            ### NEW ###
+            # scatter_mask = torch.zeros_like(output).byte()
+            scatter_mask = torch.zeros_like(output, dtype=torch.bool)
+            ### NEW ###
             for i, v in enumerate(neurons):
                 scatter_mask[i, position, v] = 1
             # Then take values from base and scatter
