@@ -4,7 +4,7 @@ import sys
 
 from utils import convert_results_to_pd
 from experiment import Intervention, Model
-from transformers import GPT2Tokenizer
+from transformers import GPT2Tokenizer, TransfoXLTokenizer
 
 '''
 Run all the extraction for a model across many templates
@@ -90,7 +90,13 @@ def run_all(model_type="gpt2", device="cuda", out_dir=".", random_weights=False,
     templates = get_template_list(template_indices)
     intervention_types = get_intervention_types()
     # Initialize Model and Tokenizer
-    tokenizer = GPT2Tokenizer.from_pretrained(model_type)
+    ### NEW ###
+    if model_type == 'transfo-xl-wt103':
+        tokenizer = TransfoXLTokenizer.from_pretrained('transfo-xl-wt103')
+    else:
+        tokenizer = GPT2Tokenizer.from_pretrained(model_type)
+    ### NEW ###
+
     model = Model(device=device, gpt2_version=model_type, random_weights=random_weights)
 
     # Set up folder if it does not exist
@@ -127,8 +133,8 @@ def run_all(model_type="gpt2", device="cuda", out_dir=".", random_weights=False,
 
 
 if __name__ == "__main__":
-    # model = 'transfo-xl-wt103'
-    model = 'gpt2'
+    model = 'transfo-xl-wt103'
+    # model = 'gpt2'
     device = 'cuda'
     out_dir = 'txl_results/neuron_intervention'
 

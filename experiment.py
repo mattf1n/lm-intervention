@@ -123,26 +123,50 @@ class Model():
                                         position,
                                         representations,
                                         layer):
-            representations[layer] = output[0][position]
+            ### New ###
+            if self.is_txl:
+                # output shape: [seq_len, batch_size, hidden_dim]
+                representations[layer] = output[position][0]
+            else:
+                representations[layer] = output[0][position]
+            ### New ###
         handles = []
         representation = {}
         with torch.no_grad():
             # construct all the hooks
             # word embeddings will be layer -1
-            handles.append(self.model.transformer.wte.register_forward_hook(
+            ### New ###
+            if self.is_txl:
+                handles.append(self.model.transformer.word_emb.register_forward_hook(
                     partial(extract_representation_hook,
                             position=position,
                             representations=representation,
                             layer=-1)))
-            # hidden layers
-            for layer in range(self.num_layers):
-                handles.append(self.model.transformer.h[layer]\
-                                   .mlp.register_forward_hook(
-                    partial(extract_representation_hook,
-                            position=position,
-                            representations=representation,
-                            layer=layer)))
-            logits, past = self.model(context)
+                # hidden layers
+                for layer in range(self.num_layers):
+                    handles.append(self.model.transformer.layers[layer]\
+                                       .pos_ff.register_forward_hook(
+                        partial(extract_representation_hook,
+                                position=position,
+                                representations=representation,
+                                layer=layer)))
+                logits, past = self.model(context.unsqueeze(0))
+            else:
+                handles.append(self.model.transformer.wte.register_forward_hook(
+                        partial(extract_representation_hook,
+                                position=position,
+                                representations=representation,
+                                layer=-1)))
+                # hidden layers
+                for layer in range(self.num_layers):
+                    handles.append(self.model.transformer.h[layer]\
+                                       .mlp.register_forward_hook(
+                        partial(extract_representation_hook,
+                                position=position,
+                                representations=representation,
+                                layer=layer)))
+                logits, past = self.model(context)
+            ### New ###
             for h in handles:
                 h.remove()
         # print(representation[0][:5])
@@ -216,8 +240,12 @@ class Model():
             neurons = torch.LongTensor(neurons).to(self.device)
             # First grab the position across batch
             # Then, for each element, get correct index w/ gather
-            base = output[:, position, :].gather(
-                1, neurons)
+            ### NEW ###
+            if self.is_txl:
+                base = output[position, :, :].gather(1, neurons)
+            else:
+                base = output[:, position, :].gather(1, neurons)
+            ### NEW ###
             intervention_view = intervention.view_as(base)
 
             if intervention_type == 'replace':
@@ -233,7 +261,12 @@ class Model():
             scatter_mask = torch.zeros_like(output, dtype=torch.bool)
             ### NEW ###
             for i, v in enumerate(neurons):
-                scatter_mask[i, position, v] = 1
+                ### NEW ###
+                if self.is_txl:
+                    scatter_mask[position, i, v] = 1
+                else:
+                    scatter_mask[i, position, v] = 1
+                ### NEW ###
             # Then take values from base and scatter
             output.masked_scatter_(scatter_mask, base.flatten())
 
@@ -248,23 +281,42 @@ class Model():
             unsorted_n_list = [n[i] for i in neuron_loc]
             n_list.append(list(np.sort(unsorted_n_list)))
           intervention_rep = alpha * rep[layer][n_list]
-          if layer == -1:
-              wte_intervention_handle = self.model.transformer.wte.register_forward_hook(
-                  partial(intervention_hook,
-                          position=position,
-                          neurons=n_list,
-                          intervention=intervention_rep,
-                          intervention_type=intervention_type))
-              handle_list.append(wte_intervention_handle)
+          ### NEW ###
+          if self.is_txl:
+              if layer == -1:
+                  handle_list.append(self.model.transformer.word_emb.register_forward_hook(
+                      partial(intervention_hook,
+                              position=position,
+                              neurons=n_list,
+                              intervention=intervention_rep,
+                              intervention_type=intervention_type)))
+              else:
+                  handle_list.append(self.model.transformer.layers[layer]\
+                                     .pos_ff.register_forward_hook(
+                      partial(intervention_hook,
+                              position=position,
+                              neurons=n_list,
+                              intervention=intervention_rep,
+                              intervention_type=intervention_type)))
           else:
-              mlp_intervention_handle = self.model.transformer.h[layer]\
-                                            .mlp.register_forward_hook(
-                  partial(intervention_hook,
-                          position=position,
-                          neurons=n_list,
-                          intervention=intervention_rep,
-                          intervention_type=intervention_type))
-              handle_list.append(mlp_intervention_handle)
+              if layer == -1:
+                  wte_intervention_handle = self.model.transformer.wte.register_forward_hook(
+                      partial(intervention_hook,
+                              position=position,
+                              neurons=n_list,
+                              intervention=intervention_rep,
+                              intervention_type=intervention_type))
+                  handle_list.append(wte_intervention_handle)
+              else:
+                  mlp_intervention_handle = self.model.transformer.h[layer]\
+                                                .mlp.register_forward_hook(
+                      partial(intervention_hook,
+                              position=position,
+                              neurons=n_list,
+                              intervention=intervention_rep,
+                              intervention_type=intervention_type))
+                  handle_list.append(mlp_intervention_handle)
+          ### NEW ###
         new_probabilities = self.get_probabilities_for_examples(
             context,
             outputs)
@@ -383,6 +435,9 @@ class Model():
         run one full neuron intervention experiment
         """
 
+        ### NEW ###
+        if self.is_txl: bsize = 400
+        ### NEW ###
         with torch.no_grad():
             '''
             Compute representations for base terms (one for each side of bias)
