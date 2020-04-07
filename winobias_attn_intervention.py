@@ -63,9 +63,11 @@ def intervene_attention(gpt2_version, do_filter, split, device='cuda', filter_qu
     filter_name = 'filtered' if do_filter else 'unfiltered'
     if random_weights:
         gpt2_version += '_random'
-    fname = f"winobias_data/attention_intervention_{gpt2_version}_{filter_name}_{split}.json"
     ### New ###
-    fname = f"mano_testinis_attention_intervention_{gpt2_version}_{filter_name}_{split}.json"
+    if model.is_txl:
+        fname = f"txl_results/attention_intervention/attention_intervention_{gpt2_version}_{filter_name}_{split}.json"
+    else:
+        fname = f"winobias_data/attention_intervention_{gpt2_version}_{filter_name}_{split}.json"
     ### New ###
     json_data['results'] = results
     with open(fname, 'w') as f:
