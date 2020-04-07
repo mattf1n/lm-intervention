@@ -4,7 +4,7 @@ import sys
 
 from utils import convert_results_to_pd
 from experiment import Intervention, Model
-from transformers import GPT2Tokenizer
+from transformers import GPT2Tokenizer, TransfoXLTokenizer
 
 '''
 Run all the extraction for a model across many templates
@@ -90,8 +90,13 @@ def run_all(model_type="gpt2", device="cuda", out_dir=".", random_weights=False,
     templates = get_template_list(template_indices)
     intervention_types = get_intervention_types()
     # Initialize Model and Tokenizer
-    tokenizer = GPT2Tokenizer.from_pretrained(model_type)
     model = Model(device=device, gpt2_version=model_type, random_weights=random_weights)
+    ### New ###
+    if model.is_txl:
+        tokenizer = TransfoXLTokenizer.from_pretrained('transfo-xl-wt103')
+    else:
+        tokenizer = GPT2Tokenizer.from_pretrained(gpt2_version)
+    ### New ###
 
     # Set up folder if it does not exist
     dt_string = datetime.now().strftime("%Y%m%d")
@@ -134,12 +139,21 @@ if __name__ == "__main__":
     device = sys.argv[2] # gpt2, gpt2-medium, gpt2-large
     out_dir = sys.argv[3] # dir to write results
 
+    ### NEW ###
+    # random_weights = False
+    # if sys.argv[4] and sys.argv[4] == 'true':
+    #     random_weights = True
+    #
+    # template_indices = None
+    # if sys.argv[5]:
+    #     template_indices = [int(ind) for ind in sys.argv[5].split(',')]
     random_weights = False
-    if sys.argv[4] and sys.argv[4] == 'true':
+    if len(sys.argv) >= 5 and sys.argv[4] == 'true':
         random_weights = True
 
     template_indices = None
-    if sys.argv[5]:
+    if len(sys.argv) >= 6 and sys.argv[5]:
         template_indices = [int(ind) for ind in sys.argv[5].split(',')]
+    ### NEW ###
 
     run_all(model, device, out_dir, random_weights=random_weights, template_indices=template_indices)
