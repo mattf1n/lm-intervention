@@ -4,6 +4,8 @@ import winobias
 from experiment import Model
 from transformers import GPT2Tokenizer
 from transformers import TransfoXLTokenizer ### NEW
+from datetime import datetime ### NEW
+import os ### NEW
 import json
 from pandas import DataFrame
 
@@ -68,9 +70,9 @@ def intervene_attention(gpt2_version, do_filter, split, device='cuda', filter_qu
         # fname = f"txl_results/attention_intervention/attention_intervention_{gpt2_version}_{filter_name}_{split}.json"
         dt_string = datetime.now().strftime('%Y%m%d')
         folder_name = dt_string + '_attention_intervention'
-        base_path = os.path.join(out_dir, folder_name)
+        base_path = os.path.join('txl_results/attention_intervention', folder_name)
         if not os.path.exists(base_path): os.makedirs(base_path)
-        fname = os.path.join(base_path, f'attention_intervention_{gpt2_version}_{filter_name}_{split}.json')
+        fname = os.path.join(base_path, f'winobias_{gpt2_version}_{filter_name}_{split}.json')
     else:
         fname = f"winobias_data/attention_intervention_{gpt2_version}_{filter_name}_{split}.json"
     ### New ###

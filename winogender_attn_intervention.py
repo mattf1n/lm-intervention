@@ -3,13 +3,16 @@ import fire
 import winogender
 from experiment import Model
 from transformers import GPT2Tokenizer
+from transformers import TransfoXLTokenizer ### NEW
+from datetime import datetime ### NEW
+import os ### NEW
 import json
 from pandas import DataFrame
 
 def get_interventions_winogender(gpt2_version, do_filter, stat, model, tokenizer,
                                 device='cuda', filter_quantile=0.25):
     examples = winogender.load_examples()
-    
+
     json_data = {'model_version': gpt2_version,
             'do_filter': do_filter,
             'stat': stat,
@@ -39,7 +42,13 @@ def get_interventions_winogender(gpt2_version, do_filter, stat, model, tokenizer
 
 def intervene_attention(gpt2_version, do_filter, stat, device='cuda', filter_quantile=0.25, random_weights=False):
     model = Model(output_attentions=True, gpt2_version=gpt2_version, device=device, random_weights=random_weights)
-    tokenizer = GPT2Tokenizer.from_pretrained(gpt2_version)
+    ### New ###
+    if model.is_txl:
+        print('****** NEW: Using TransoXL tokenizer')
+        tokenizer = TransfoXLTokenizer.from_pretrained('transfo-xl-wt103')
+    else:
+        tokenizer = GPT2Tokenizer.from_pretrained(gpt2_version)
+    ### New ###
 
     interventions, json_data = get_interventions_winogender(gpt2_version, do_filter, stat, model, tokenizer,
                                                             device, filter_quantile)
@@ -50,7 +59,16 @@ def intervene_attention(gpt2_version, do_filter, stat, device='cuda', filter_qua
     filter_name = 'filtered' if do_filter else 'unfiltered'
     if random_weights:
         gpt2_version += '_random'
-    fname = f"winogender_data/attention_intervention_{stat}_{gpt2_version}_{filter_name}.json"
+    ### New ###
+    if model.is_txl:
+        dt_string = datetime.now().strftime('%Y%m%d')
+        folder_name = dt_string + '_attention_intervention'
+        base_path = os.path.join('txl_results/attention_intervention', folder_name)
+        if not os.path.exists(base_path): os.makedirs(base_path)
+        fname = os.path.join(base_path, f'winogender_{gpt2_version}_{filter_name}_{stat}.json')
+    else:
+        fname = f"winogender_data/attention_intervention_{stat}_{gpt2_version}_{filter_name}.json"
+    ### New ###
     json_data['results'] = results
     with open(fname, 'w') as f:
         json.dump(json_data, f)
@@ -58,4 +76,3 @@ def intervene_attention(gpt2_version, do_filter, stat, device='cuda', filter_qua
 
 if __name__ == "__main__":
     fire.Fire(intervene_attention)
-
