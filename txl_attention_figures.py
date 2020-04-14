@@ -63,8 +63,9 @@ def save_figures(data, source, model_version, filter, suffix, k=10):
 
     plt.legend((p3, p2[0], p1[0]), ('Total', 'Direct', 'Indirect'), loc='upper right', fontsize=11, bbox_to_anchor=(.99, 0.90))
     sns.despine()
-    plt.savefig(f'txl_results/attention_intervention/stacked_bar_charts/{source}_{model_version}_{filter}_'
-                f'{suffix}.pdf', format='pdf')
+    # plt.savefig(f'txl_results/attention_intervention/stacked_bar_charts/{source}_{model_version}_{filter}_'
+    #             f'{suffix}.pdf', format='pdf')
+    plt.savefig(base_path + f'stacked_bar_charts/{source}_{model_version}_{filter}_{suffix}.pdf', format='pdf')
     plt.close()
 
     annot = False
@@ -78,8 +79,9 @@ def save_figures(data, source, model_version, filter, suffix, k=10):
         ax = sns.heatmap(mean_effect, rasterized=True, annot=annot, annot_kws={"size": 9}, fmt=".2f", square=True)
         ax.set(xlabel='Head', ylabel='Layer', title=f'Mean {effect_type.capitalize()} Effect')
         plt.figure(num=1, figsize=(7, 5))
-        plt.savefig(f'txl_results/attention_intervention/heat_maps_{effect_type}/{source}_{model_version}_{filter}_'
-                    f'{suffix}.pdf', format='pdf')
+        # plt.savefig(f'txl_results/attention_intervention/heat_maps_{effect_type}/{source}_{model_version}_{filter}_'
+        #             f'{suffix}.pdf', format='pdf')
+        plt.savefig(base_path + f'heat_maps_{effect_type}/{source}_{model_version}_{filter}_{suffix}.pdf', format='pdf')
         plt.close()
 
     # Plot layer-level bar chart for indirect and direct effects
@@ -92,8 +94,9 @@ def save_figures(data, source, model_version, filter, suffix, k=10):
         ax = sns.barplot(x=mean_effect, y=list(range(n_layers)), orient="h", color="#4472C4")
         ax.set(ylabel='Layer', title=f'Mean {effect_type.capitalize()} Effect')
         # ax.axvline(0, linewidth=.85, color='black')
-        plt.savefig(f'txl_results/attention_intervention/layer_{effect_type}/{source}_{model_version}_{filter}_'
-                    f'{suffix}.pdf', format='pdf')
+        # plt.savefig(f'txl_results/attention_intervention/layer_{effect_type}/{source}_{model_version}_{filter}_'
+        #             f'{suffix}.pdf', format='pdf')
+        plt.savefig(base_path + f'layer_{effect_type}/{source}_{model_version}_{filter}_{suffix}.pdf', format='pdf')
         plt.close()
 
     for do_sort in False, True:
@@ -214,15 +217,19 @@ def save_figures(data, source, model_version, filter, suffix, k=10):
             ax2.axvline(0, linewidth=.85, color='black')
             # plt.figure(num=1, figsize=(14, 10))
             # plt.show()
-            fname = f'txl_results/attention_intervention/heat_maps_with_bar_{effect_type}{"_sorted" if do_sort else ""}/'\
+            # fname = f'txl_results/attention_intervention/heat_maps_with_bar_{effect_type}{"_sorted" if do_sort else ""}/'\
+            #         f'{source}_{model_version}_{filter}_{suffix}.pdf'
+            fname = base_path + f'heat_maps_with_bar_{effect_type}{"_sorted" if do_sort else ""}/'\
                     f'{source}_{model_version}_{filter}_{suffix}.pdf'
             plt.savefig(fname, format='pdf')
             plt.close()
 
 
 if __name__ == '__main__':
-    print('labas!')
-    fname = 'mano_testinis_attention_intervention_transfo-xl-wt103_filtered_dev.json'
+    base_path = 'txl_results/attention_intervention/20200414_attention_intervention/'
+    fname = base_path + 'winogender_transfo-xl-wt103_filtered_bergsma.json'
     with open(fname) as f:
         data = json.load(f)
-        save_figures(data, 'winobias', 'transfo-xl-wt103', 'filtered', 'dev')
+        print('labas!')
+        # save_figures(data, 'winobias', 'transfo-xl-wt103', 'filtered', 'dev')
+        save_figures(data, 'winogender', 'transfo-xl-wt103', 'filtered', 'bergsma')
