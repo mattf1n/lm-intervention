@@ -1,0 +1,5 @@
+Model: transfo-xl-wt103
+****** NEW: Using TransfoXL model
+Running template "The {} said that" now...
+	 Only used 320/320 professions due to tokenizer
+	 Running with intervention: man_direct
