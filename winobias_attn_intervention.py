@@ -65,7 +65,12 @@ def intervene_attention(gpt2_version, do_filter, split, device='cuda', filter_qu
         gpt2_version += '_random'
     ### New ###
     if model.is_txl:
-        fname = f"txl_results/attention_intervention/attention_intervention_{gpt2_version}_{filter_name}_{split}.json"
+        # fname = f"txl_results/attention_intervention/attention_intervention_{gpt2_version}_{filter_name}_{split}.json"
+        dt_string = datetime.now().strftime('%Y%m%d')
+        folder_name = dt_string + '_attention_intervention'
+        base_path = os.path.join(out_dir, folder_name)
+        if not os.path.exists(base_path): os.makedirs(base_path)
+        fname = os.path.join(base_path, f'attention_intervention_{gpt2_version}_{filter_name}_{split}.json')
     else:
         fname = f"winobias_data/attention_intervention_{gpt2_version}_{filter_name}_{split}.json"
     ### New ###
