@@ -32,7 +32,7 @@ def main(folder_name="results/20191114_neuron_intervention/",
                     'total': p[2]+p[1],
                     'max': max([p[2],p[1]], key=abs)}
 
-    fnames = [f for f in os.listdir(folder_name) if "_" + model_name + ".csv" in f and f.endswith("csv")]    
+    fnames = [f for f in os.listdir(folder_name) if "_" + model_name + ".csv" in f and f.endswith("csv")]
     paths = [os.path.join(folder_name, f) for f in fnames]
     # fnames[:5], paths[:5]
     woman_files = [f for f in paths

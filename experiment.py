@@ -77,7 +77,8 @@ class Model():
         self.is_txl = gpt2_version == 'transfo-xl-wt103'
         if self.is_txl:
             print('****** NEW: Using TransfoXL model')
-            configuration = TransfoXLConfig(mem_len=16, output_attentions=output_attentions)
+            # configuration = TransfoXLConfig(mem_len=16, output_attentions=output_attentions)
+            configuration = TransfoXLConfig(output_attentions=output_attentions)
             self.model = TransfoXLLMHeadModel.from_pretrained(
                 'transfo-xl-wt103',
                 config=configuration)
@@ -436,7 +437,7 @@ class Model():
         """
 
         ### NEW ###
-        if self.is_txl: bsize = 400
+        # if self.is_txl: bsize = 400
         ### NEW ###
         with torch.no_grad():
             '''
@@ -579,7 +580,10 @@ class Model():
             input = x  # Get attention for x
         else:
             raise ValueError(f"Invalid effect: {effect}")
-        batch = torch.tensor(input).unsqueeze(0).to(self.device)
+        ### NEW ###
+        # batch = torch.tensor(input).unsqueeze(0).to(self.device)
+        batch = input.clone().detach().unsqueeze(0).to(self.device)
+        ### NEW ###
         attention_override = self.model(batch)[-1]
 
         ### NEW ###
