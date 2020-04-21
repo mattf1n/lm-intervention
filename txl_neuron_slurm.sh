@@ -9,4 +9,4 @@
 #SBATCH -e myerrors_%j.err  # File to which STDERR will be written, %j inserts jobid
 module load Anaconda3/2019.10
 source activate tf2
-python neuron_experiment_multiple_templates_gender.py transfo-xl-wt103 cuda txl_results/neuron_intervention/
+python neuron_experiment_multiple_templates_gender.py transfo-xl-wt103 cuda txl_results/neuron_intervention/ false "17"
