@@ -436,7 +436,7 @@ class Model():
         """
 
         ### NEW ###
-        # if self.is_txl: bsize = 400
+        if self.is_txl: bsize = 400
         ### NEW ###
         with torch.no_grad():
             '''
