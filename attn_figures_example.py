@@ -3,6 +3,7 @@ import seaborn as sns
 import torch
 from matplotlib import pyplot as plt
 from transformers import GPT2Model, GPT2Tokenizer
+from transformers import TransfoXLModel, TransfoXLConfig, TransfoXLTokenizer ### NEW
 from operator import itemgetter
 import math
 import numpy as np
@@ -154,9 +155,10 @@ def main():
         'gpt2-medium': [(10, 9), (6, 15), (10,12)],
         'gpt2-xl':[(16,15), (16, 24), (17,10)],
         'gpt2-large':[(16,19), (16,5), (15,6)],
-        'distilgpt2': [(3,1), (2,6), (3,6)]
+        'distilgpt2': [(3,1), (2,6), (3,6)],
+        'transfo-xl-wt103': [(10, 9), (6, 15), (10,12)] ### NEW
     }
-    models = ['gpt2', 'gpt2-medium', 'gpt2-xl', 'gpt2-large', 'distilgpt2']
+    models = ['gpt2', 'gpt2-medium', 'gpt2-xl', 'gpt2-large', 'distilgpt2', 'transfo-xl-wt103']
 
     examples_to_highlight = {
         "The guard appreciated getting treatment from the nurse": [[7], [1]],
@@ -174,12 +176,15 @@ def main():
     split = 'dev'
     testing = False
     for model_version in models:
+    # for model_version in models[-1:]: ### NEW
         heads = top_heads[model_version]
         if model_version == 'distilgpt2':
             filter = 'unfiltered' # In order to get canonical example
         else:
             filter = 'filtered'
         fname = f"winobias_data/attention_intervention_{model_version}_{filter}_{split}.json"
+        # fname = ('txl_results/attention_intervention/20200414_attention_intervention/'
+        #          f'winobias_{model_version}_{filter}_{split}.json') ### NEW
         with open(fname) as f:
             data = json.load(f)
         prompts = None
@@ -188,9 +193,17 @@ def main():
 
         with torch.no_grad():
             # Get attention and validate
-            model = GPT2Model.from_pretrained(model_version, output_attentions=True)
-            tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
-            model.eval()
+            ### New ###
+            if model_version == 'transfo-xl-wt103':
+                configuration = TransfoXLConfig(mem_len=0, output_attentions=True)
+                model = TransfoXLModel.from_pretrained(model_version, config=configuration)
+                tokenizer = TransfoXLTokenizer.from_pretrained(model_version)
+                model.eval()
+            else:
+                model = GPT2Model.from_pretrained(model_version, output_attentions=True)
+                tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+                model.eval()
+            ### New ###
             for result_index, result in enumerate(results_by_ratio):
                 prompts = (result['base_string1'], result['base_string2'])
                 highlight_indices = None
@@ -202,7 +215,9 @@ def main():
                     # fname = f'results/attention_intervention/qualitative/winobias_{model_version}_main.pdf'
                     # save_fig(prompts, heads, model, tokenizer, fname, device, highlight_indices)
                 # else:
-                fname = f'results/attention_intervention/qualitative/winobias_{model_version}_{filter}_{split}_{result_index}.pdf'
+                # fname = f'results/attention_intervention/qualitative/winobias_{model_version}_{filter}_{split}_{result_index}.pdf'
+                fname = ('txl_results/attention_intervention/20200414_attention_intervention/'
+                         f'qualitative/winobias_{model_version}_{filter}_{split}_{result_index}.pdf') ### NEW
                 save_fig(prompts, heads, model, tokenizer, fname, device, highlight_indices)
                 # For testing only:
                 if testing:

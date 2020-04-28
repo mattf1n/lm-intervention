@@ -94,24 +94,38 @@ class Model():
             self.model.init_weights()
 
         ### New ###
+        self.top_k = 5
+
         if self.is_txl:
-            # Options
-            self.top_k = 5
             # 12 for GPT-2
             self.num_layers = len(self.model.transformer.layers)
             # 768 for GPT-2
             self.num_neurons = self.model.transformer.d_model
             # 12 for GPT-2
             self.num_heads = self.model.transformer.n_head
+
+            self.attention_layer = lambda layer: self.model.transformer.layers[layer].dec_attn
+
+            self.word_emb_layer = self.model.transformer.word_emb
+
+            self.neuron_layer = lambda layer: self.model.transformer.layers[layer].pos_ff
+            # Default: [batch_size, seq_len, hidden_dim]
+            self.order_dims = lambda a: (a[1], a[0], *a[2:])
         else:
-            # # Options
-            self.top_k = 5
             # 12 for GPT-2
             self.num_layers = len(self.model.transformer.h)
             # 768 for GPT-2
             self.num_neurons = self.model.transformer.wte.weight.shape[1]
             # 12 for GPT-2
             self.num_heads = self.model.transformer.h[0].attn.n_head
+
+            self.attention_layer = lambda layer: self.model.transformer.h[layer].attn
+
+            self.word_emb_layer = self.model.transformer.wte
+
+            self.neuron_layer = lambda layer: self.model.transformer.h[layer].mlp
+            # Default: [batch_size, seq_len, hidden_dim]
+            self.order_dims = lambda a: a
         ### New ###
 
 
@@ -124,11 +138,12 @@ class Model():
                                         representations,
                                         layer):
             ### New ###
-            if self.is_txl:
-                # output shape: [seq_len, batch_size, hidden_dim]
-                representations[layer] = output[position][0]
-            else:
-                representations[layer] = output[0][position]
+            # if self.is_txl:
+            #     # output shape: [seq_len, batch_size, hidden_dim]
+            #     representations[layer] = output[(position, 0)]
+            # else:
+            #     representations[layer] = output[(0, position)]
+            representations[layer] = output[self.order_dims((0, position))]
             ### New ###
         handles = []
         representation = {}
@@ -136,36 +151,50 @@ class Model():
             # construct all the hooks
             # word embeddings will be layer -1
             ### New ###
-            if self.is_txl:
-                handles.append(self.model.transformer.word_emb.register_forward_hook(
+            # if self.is_txl:
+            #     handles.append(self.model.transformer.word_emb.register_forward_hook(
+            #         partial(extract_representation_hook,
+            #                 position=position,
+            #                 representations=representation,
+            #                 layer=-1)))
+            #     # hidden layers
+            #     for layer in range(self.num_layers):
+            #         handles.append(self.model.transformer.layers[layer]\
+            #                            .pos_ff.register_forward_hook(
+            #             partial(extract_representation_hook,
+            #                     position=position,
+            #                     representations=representation,
+            #                     layer=layer)))
+            #     logits, past = self.model(context.unsqueeze(0))
+            # else:
+            #     handles.append(self.model.transformer.wte.register_forward_hook(
+            #             partial(extract_representation_hook,
+            #                     position=position,
+            #                     representations=representation,
+            #                     layer=-1)))
+            #     # hidden layers
+            #     for layer in range(self.num_layers):
+            #         handles.append(self.model.transformer.h[layer]\
+            #                            .mlp.register_forward_hook(
+            #             partial(extract_representation_hook,
+            #                     position=position,
+            #                     representations=representation,
+            #                     layer=layer)))
+            #     # logits, past = self.model(context)
+            #     logits, past = self.model(context.unsqueeze(0))
+            handles.append(self.word_emb_layer.register_forward_hook(
+                partial(extract_representation_hook,
+                        position=position,
+                        representations=representation,
+                        layer=-1)))
+            # hidden layers
+            for layer in range(self.num_layers):
+                handles.append(self.neuron_layer(layer).register_forward_hook(
                     partial(extract_representation_hook,
                             position=position,
                             representations=representation,
-                            layer=-1)))
-                # hidden layers
-                for layer in range(self.num_layers):
-                    handles.append(self.model.transformer.layers[layer]\
-                                       .pos_ff.register_forward_hook(
-                        partial(extract_representation_hook,
-                                position=position,
-                                representations=representation,
-                                layer=layer)))
-                logits, past = self.model(context.unsqueeze(0))
-            else:
-                handles.append(self.model.transformer.wte.register_forward_hook(
-                        partial(extract_representation_hook,
-                                position=position,
-                                representations=representation,
-                                layer=-1)))
-                # hidden layers
-                for layer in range(self.num_layers):
-                    handles.append(self.model.transformer.h[layer]\
-                                       .mlp.register_forward_hook(
-                        partial(extract_representation_hook,
-                                position=position,
-                                representations=representation,
-                                layer=layer)))
-                logits, past = self.model(context)
+                            layer=layer)))
+            logits, past = self.model(context.unsqueeze(0))
             ### New ###
             for h in handles:
                 h.remove()
@@ -241,10 +270,12 @@ class Model():
             # First grab the position across batch
             # Then, for each element, get correct index w/ gather
             ### NEW ###
-            if self.is_txl:
-                base = output[position, :, :].gather(1, neurons)
-            else:
-                base = output[:, position, :].gather(1, neurons)
+            # if self.is_txl:
+            #     base = output[position, :, :].gather(1, neurons)
+            # else:
+            #     base = output[:, position, :].gather(1, neurons)
+            base_slice = self.order_dims((slice(None), position, slice(None)))
+            base = output[base_slice].gather(1, neurons)
             ### NEW ###
             intervention_view = intervention.view_as(base)
 
@@ -262,10 +293,11 @@ class Model():
             ### NEW ###
             for i, v in enumerate(neurons):
                 ### NEW ###
-                if self.is_txl:
-                    scatter_mask[position, i, v] = 1
-                else:
-                    scatter_mask[i, position, v] = 1
+                # if self.is_txl:
+                #     scatter_mask[position, i, v] = 1
+                # else:
+                #     scatter_mask[i, position, v] = 1
+                scatter_mask[self.order_dims((i, position, v))] = 1
                 ### NEW ###
             # Then take values from base and scatter
             output.masked_scatter_(scatter_mask, base.flatten())
@@ -282,44 +314,59 @@ class Model():
             n_list.append(list(np.sort(unsorted_n_list)))
           intervention_rep = alpha * rep[layer][n_list]
           ### NEW ###
-          if self.is_txl:
-              if layer == -1:
-                  handle_list.append(self.model.transformer.word_emb.register_forward_hook(
-                      partial(intervention_hook,
-                              position=position,
-                              neurons=n_list,
-                              intervention=intervention_rep,
-                              intervention_type=intervention_type)))
-              else:
-                  handle_list.append(self.model.transformer.layers[layer]\
-                                     .pos_ff.register_forward_hook(
-                      partial(intervention_hook,
-                              position=position,
-                              neurons=n_list,
-                              intervention=intervention_rep,
-                              intervention_type=intervention_type)))
+          # if self.is_txl:
+          #     if layer == -1:
+          #         handle_list.append(self.model.transformer.word_emb.register_forward_hook(
+          #             partial(intervention_hook,
+          #                     position=position,
+          #                     neurons=n_list,
+          #                     intervention=intervention_rep,
+          #                     intervention_type=intervention_type)))
+          #     else:
+          #         handle_list.append(self.model.transformer.layers[layer]\
+          #                            .pos_ff.register_forward_hook(
+          #             partial(intervention_hook,
+          #                     position=position,
+          #                     neurons=n_list,
+          #                     intervention=intervention_rep,
+          #                     intervention_type=intervention_type)))
+          # else:
+          #     if layer == -1:
+          #         wte_intervention_handle = self.model.transformer.wte.register_forward_hook(
+          #             partial(intervention_hook,
+          #                     position=position,
+          #                     neurons=n_list,
+          #                     intervention=intervention_rep,
+          #                     intervention_type=intervention_type))
+          #         handle_list.append(wte_intervention_handle)
+          #     else:
+          #         mlp_intervention_handle = self.model.transformer.h[layer]\
+          #                                       .mlp.register_forward_hook(
+          #             partial(intervention_hook,
+          #                     position=position,
+          #                     neurons=n_list,
+          #                     intervention=intervention_rep,
+          #                     intervention_type=intervention_type))
+          #         handle_list.append(mlp_intervention_handle)
+          if layer == -1:
+              handle_list.append(self.word_emb_layer.register_forward_hook(
+                  partial(intervention_hook,
+                          position=position,
+                          neurons=n_list,
+                          intervention=intervention_rep,
+                          intervention_type=intervention_type)))
           else:
-              if layer == -1:
-                  wte_intervention_handle = self.model.transformer.wte.register_forward_hook(
-                      partial(intervention_hook,
-                              position=position,
-                              neurons=n_list,
-                              intervention=intervention_rep,
-                              intervention_type=intervention_type))
-                  handle_list.append(wte_intervention_handle)
-              else:
-                  mlp_intervention_handle = self.model.transformer.h[layer]\
-                                                .mlp.register_forward_hook(
-                      partial(intervention_hook,
-                              position=position,
-                              neurons=n_list,
-                              intervention=intervention_rep,
-                              intervention_type=intervention_type))
-                  handle_list.append(mlp_intervention_handle)
+              handle_list.append(self.neuron_layer(layer).register_forward_hook(
+                  partial(intervention_hook,
+                          position=position,
+                          neurons=n_list,
+                          intervention=intervention_rep,
+                          intervention_type=intervention_type)))
           ### NEW ###
         new_probabilities = self.get_probabilities_for_examples(
             context,
             outputs)
+
         for hndle in handle_list:
           hndle.remove()
         return new_probabilities
@@ -392,14 +439,19 @@ class Model():
                 attn_override_mask = d['attention_override_mask']
                 layer = d['layer']
                 ### NEW ###
-                if self.is_txl:
-                    hooks.append(self.model.transformer.layers[layer].dec_attn.register_forward_hook(
-                        partial(txl_intervention_hook,
-                                attn_override=attn_override,
-                                attn_override_mask=attn_override_mask)))
-                else:
-                    hooks.append(self.model.transformer.h[layer].attn.register_forward_hook(
-                        partial(intervention_hook, attn_override=attn_override, attn_override_mask=attn_override_mask)))
+                # if self.is_txl:
+                #     hooks.append(self.model.transformer.layers[layer].dec_attn.register_forward_hook(
+                #         partial(txl_intervention_hook,
+                #                 attn_override=attn_override,
+                #                 attn_override_mask=attn_override_mask)))
+                # else:
+                #     hooks.append(self.model.transformer.h[layer].attn.register_forward_hook(
+                #         partial(intervention_hook, attn_override=attn_override, attn_override_mask=attn_override_mask)))
+
+                hooks.append(self.attention_layer(layer).register_forward_hook(
+                    partial(txl_intervention_hook if self.is_txl else intervention_hook,
+                            attn_override=attn_override,
+                            attn_override_mask=attn_override_mask)))
                 ### NEW ###
 
             new_probabilities = self.get_probabilities_for_examples_multitoken(
@@ -585,19 +637,13 @@ class Model():
         ### NEW ###
         attention_override = self.model(batch)[-1]
 
-        ### NEW ###
-        if self.is_txl:
-            batch_size = 1
-            seq_len = len(x)
-            seq_len_alt = len(x_alt)
-            assert seq_len == seq_len_alt
-        else:
-            batch_size = 1
-            seq_len = len(x)
-            seq_len_alt = len(x_alt)
-            assert seq_len == seq_len_alt
-            assert len(attention_override) == self.num_layers
-            assert attention_override[0].shape == (batch_size, self.num_heads, seq_len, seq_len)
+        batch_size = 1
+        seq_len = len(x)
+        seq_len_alt = len(x_alt)
+        assert seq_len == seq_len_alt
+        ### NEW ### (commented out)
+        # assert len(attention_override) == self.num_layers
+        # assert attention_override[0].shape == (batch_size, self.num_heads, seq_len, seq_len)
         ### NEW ###
 
         with torch.no_grad():

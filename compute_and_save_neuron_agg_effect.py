@@ -70,7 +70,31 @@ def main(folder_name="results/20191114_neuron_intervention/",
                     'total': p[2]+p[1],
                     'max': max([p[2],p[1]], key=abs)}
 
-    fnames = [f for f in os.listdir(folder_name) if "_" + model_name + ".csv" in f and f.endswith("csv")]
+    ### NEW ###
+    # fnames = [f for f in os.listdir(folder_name) if "_" + model_name + ".csv" in f and f.endswith("csv")]
+    templs = ["The_X_said_that",
+              "The_X_yelled_that",
+              "The_X_whispered_that",
+              "The_X_wanted_that",
+              "The_X_desired_that",
+              "The_X_wished_that",
+              "The_X_ate_because",
+              "The_X_ran_because",
+              "The_X_drove_because",
+              "The_X_slept_because",
+              "The_X_cried_because",
+              "The_X_laughed_because",
+              "The_X_went_home_because",
+              "The_X_stayed_up_because",
+              "The_X_was_fired_because",
+              "The_X_was_promoted_because",
+              "The_X_yelled_because"]
+    templ = templs[11]
+    fnames = [f for f in os.listdir(folder_name)
+              if "_" + model_name + ".csv" in f
+              and f.endswith("csv")
+              and templ in f]
+    ### NEW ###
     print(fnames)
     paths = [os.path.join(folder_name, f) for f in fnames]
     print(paths)
@@ -138,7 +162,8 @@ def main(folder_name="results/20191114_neuron_intervention/",
         }).reset_index()
     neuron_effect_df.columns = ['_'.join(col).strip()
                                 for col in neuron_effect_df.columns.values]
-    neuron_effect_df.to_csv(os.path.join(folder_name, model_name + "_neuron_effects.csv"))
+    # neuron_effect_df.to_csv(os.path.join(folder_name, model_name + "_neuron_effects.csv"))
+    neuron_effect_df.to_csv(os.path.join(folder_name, model_name + "_neuron_effects" + '-' + templ + ".csv")) ### NEW
 
 
 if __name__ == "__main__":
