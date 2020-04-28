@@ -95,7 +95,7 @@ def run_all(model_type="gpt2", device="cuda", out_dir=".", random_weights=False,
     if model.is_txl:
         tokenizer = TransfoXLTokenizer.from_pretrained('transfo-xl-wt103')
     else:
-        tokenizer = GPT2Tokenizer.from_pretrained(gpt2_version)
+        tokenizer = GPT2Tokenizer.from_pretrained(model_type)
     ### New ###
 
     # Set up folder if it does not exist

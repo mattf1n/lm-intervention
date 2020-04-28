@@ -135,7 +135,7 @@ def run_all(model_type="gpt2", device="cuda", out_dir=".", random_weights=False,
 if __name__ == "__main__":
     model = 'transfo-xl-wt103'
     # model = 'gpt2'
-    device = 'cuda'
+    device = 'cpu'
     out_dir = 'txl_results/neuron_intervention'
 
     run_all(model, device, out_dir)
