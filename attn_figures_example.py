@@ -15,7 +15,7 @@ GRAY = '#303030'
 def save_fig(prompts, heads, model, tokenizer, fname, device, highlight_indices=None):
     palette = sns.color_palette('muted')
     # plt.subplots_adjust(bottom=.2)
-    plt.rc('text', usetex=True)
+    plt.rc('text', usetex=False)
     # plt.rcParams["axes.edgecolor"] = "black"
     # plt.rcParams["axes.linewidth"] = 1
     fig, axs = plt.subplots(1, 2, sharey=False, figsize=(3.3, 1.95))
@@ -78,7 +78,10 @@ def save_fig(prompts, heads, model, tokenizer, fname, device, highlight_indices=
         plts = []
         left = None
         for i, (layer, head) in enumerate(heads):
-            attn_last_word = attention[layer][head][-1].numpy()
+            ### NEW ###
+            # attn_last_word = attention[layer][head][-1].numpy()
+            attn_last_word = attention[layer][head][-1][-len(formatted_seq):].numpy()
+            ### NEW ###
             seq_placeholders = [f'a{i}' for i in range(len(formatted_seq))]
             if left is None:
                 print(attn_last_word)
@@ -156,9 +159,9 @@ def main():
         'gpt2-xl':[(16,15), (16, 24), (17,10)],
         'gpt2-large':[(16,19), (16,5), (15,6)],
         'distilgpt2': [(3,1), (2,6), (3,6)],
-        'transfo-xl-wt103': [(10, 9), (6, 15), (10,12)] ### NEW
+        'transfo-xl-wt103': [(8, 8), (10, 5), (11, 2)] ### NEW ###
     }
-    models = ['gpt2', 'gpt2-medium', 'gpt2-xl', 'gpt2-large', 'distilgpt2', 'transfo-xl-wt103']
+    models = ['gpt2', 'gpt2-medium', 'gpt2-xl', 'gpt2-large', 'distilgpt2', 'transfo-xl-wt103'] ### NEW ###
 
     examples_to_highlight = {
         "The guard appreciated getting treatment from the nurse": [[7], [1]],
@@ -175,16 +178,23 @@ def main():
 
     split = 'dev'
     testing = False
-    for model_version in models:
-    # for model_version in models[-1:]: ### NEW
+    ### NEW ###
+    # for model_version in models:
+    for model_version in ['transfo-xl-wt103']:
+    # for model_version in ['gpt2']:
+    ### NEW ###
         heads = top_heads[model_version]
         if model_version == 'distilgpt2':
             filter = 'unfiltered' # In order to get canonical example
         else:
             filter = 'filtered'
-        fname = f"winobias_data/attention_intervention_{model_version}_{filter}_{split}.json"
-        # fname = ('txl_results/attention_intervention/20200414_attention_intervention/'
-        #          f'winobias_{model_version}_{filter}_{split}.json') ### NEW
+        ### NEW ###
+        if model_version == 'transfo-xl-wt103':
+            fname = ('txl_results/attention_intervention/20200519_attention_intervention/'
+                     f'winobias_{model_version}_{filter}_{split}.json')
+        else:
+            fname = f"winobias_data/attention_intervention_{model_version}_{filter}_{split}.json"
+        ### NEW ###
         with open(fname) as f:
             data = json.load(f)
         prompts = None
@@ -195,7 +205,7 @@ def main():
             # Get attention and validate
             ### New ###
             if model_version == 'transfo-xl-wt103':
-                configuration = TransfoXLConfig(mem_len=0, output_attentions=True)
+                configuration = TransfoXLConfig(mem_len=48, output_attentions=True)
                 model = TransfoXLModel.from_pretrained(model_version, config=configuration)
                 tokenizer = TransfoXLTokenizer.from_pretrained(model_version)
                 model.eval()
@@ -215,9 +225,16 @@ def main():
                     # fname = f'results/attention_intervention/qualitative/winobias_{model_version}_main.pdf'
                     # save_fig(prompts, heads, model, tokenizer, fname, device, highlight_indices)
                 # else:
-                # fname = f'results/attention_intervention/qualitative/winobias_{model_version}_{filter}_{split}_{result_index}.pdf'
-                fname = ('txl_results/attention_intervention/20200414_attention_intervention/'
-                         f'qualitative/winobias_{model_version}_{filter}_{split}_{result_index}.pdf') ### NEW
+                ### NEW ###
+                highlight_indices = None
+                if model_version == 'transfo-xl-wt103':
+                    fname = ('txl_results/attention_intervention/20200519_attention_intervention/'
+                             f'qualitative2/winobias_{model_version}_{filter}_{split}_{result_index}.pdf')
+                else:
+                    # fname = f'results/attention_intervention/qualitative/winobias_{model_version}_{filter}_{split}_{result_index}.pdf'
+                    fname = ('txl_results/attention_intervention/20200519_attention_intervention/'
+                             f'qualitative_gpt_small/winobias_{model_version}_{filter}_{split}_{result_index}.pdf')
+                ### NEW ###
                 save_fig(prompts, heads, model, tokenizer, fname, device, highlight_indices)
                 # For testing only:
                 if testing:

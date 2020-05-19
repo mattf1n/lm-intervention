@@ -37,7 +37,7 @@ intervention = Intervention(tokenizer,
 x = intervention.base_strings_tok[0]
 x_alt = intervention.base_strings_tok[1]
 
-batch = torch.tensor(x_alt).unsqueeze(0).to(model.device)
+batch = x_alt.clone().detach().unsqueeze(0).to(model.device)
 attention_override = model.model(batch)[-1]
 
 
