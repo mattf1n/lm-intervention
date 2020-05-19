@@ -89,7 +89,7 @@ def main(folder_name="results/20191114_neuron_intervention/",
               "The_X_was_fired_because",
               "The_X_was_promoted_because",
               "The_X_yelled_because"]
-    templ = templs[11]
+    templ = templs[0]
     fnames = [f for f in os.listdir(folder_name)
               if "_" + model_name + ".csv" in f
               and f.endswith("csv")

@@ -44,8 +44,12 @@ class Intervention():
         self.base_strings = [base_string.format(s)
                              for s in substitutes]
         # Tokenized bases
-        self.base_strings_tok = [self.enc.encode(s)
+        ### NEW ###
+        # self.base_strings_tok = [self.enc.encode(s)
+        #                          for s in self.base_strings]
+        self.base_strings_tok = [self.enc.encode(s, add_space_before_punct_symbol=True)
                                  for s in self.base_strings]
+        ### NEW ###
         # print(self.base_strings_tok)
         self.base_strings_tok = torch.LongTensor(self.base_strings_tok)\
                                      .to(device)
@@ -55,7 +59,10 @@ class Intervention():
         self.candidates = []
         for c in candidates:
             # '. ' added to input so that tokenizer understand that first word follows a space.
-            tokens = self.enc.tokenize('. ' + c)[1:]
+            ### NEW ###
+            # tokens = self.enc.tokenize('. ' + c)[1:]
+            tokens = self.enc.tokenize('. ' + c, add_space_before_punct_symbol=True)[1:]
+            ### NEW ###
             self.candidates.append(tokens)
 
         self.candidates_tok = [self.enc.convert_tokens_to_ids(tokens)
