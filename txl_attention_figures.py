@@ -226,7 +226,8 @@ def save_figures(data, source, model_version, filter, suffix, k=10):
 
 
 if __name__ == '__main__':
-    base_path = 'txl_results/attention_intervention/20200519_attention_intervention/'
+    base_path = 'txl_results/attention_intervention/20200526_attention_intervention/'
+    # fname = base_path + 'winobias_transfo-xl-wt103_filtered_dev.json'
     fname = base_path + 'winogender_transfo-xl-wt103_filtered_bergsma.json'
     with open(fname) as f:
         data = json.load(f)

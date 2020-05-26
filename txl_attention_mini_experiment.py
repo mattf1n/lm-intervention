@@ -28,21 +28,31 @@ model = Model(output_attentions=True, gpt2_version='transfo-xl-wt103')
 #                             "The doctor asked the nurse a question. {}",
 #                             ["He", "She"],
 #                             ["asked", "answered"])
+# intervention = Intervention(tokenizer,
+#                             'The cook prepared a dish for the teacher because {}',
+#                             ['She', 'He'],
+#                             ['is hungry', 'just learned a new dish.'])
 intervention = Intervention(tokenizer,
-                            'The cook prepared a dish for the teacher because {}',
-                            ['She', 'He'],
-                            ['is hungry', 'just learned a new dish.'])
+                            'The guard saved the editor from the criminals because {}',
+                            ['she', 'he'],
+                            ['needed help.', 'was on duty.'])
 
 
 x = intervention.base_strings_tok[0]
 x_alt = intervention.base_strings_tok[1]
+
+# print(x)
+# print(x_alt)
+# print(intervention.candidates)
+# print(intervention.candidates_tok)
+# assert False
 
 batch = x_alt.clone().detach().unsqueeze(0).to(model.device)
 attention_override = model.model(batch)[-1]
 
 
 with torch.no_grad():
-    layer = 3
+    layer = 8
     layer_attention_override = attention_override[layer]
     attention_override_mask = torch.ones_like(layer_attention_override, dtype=torch.uint8)
 
