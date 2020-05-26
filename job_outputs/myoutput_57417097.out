@@ -1,0 +1,6 @@
+Model: transfo-xl-wt103
+subset of templates: ['The {} yelled because']
+****** NEW: Using TransfoXL model
+Running template "The {} yelled because" now...
+	 Only used 291/320 professions due to tokenizer
+	 Running with intervention: man_direct

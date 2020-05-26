@@ -1,0 +1,14 @@
+Traceback (most recent call last):
+  File "winogender_attn_intervention.py", line 82, in <module>
+    fire.Fire(intervene_attention)
+  File "/n/home00/simassakenis/.conda/envs/tf2/lib/python3.7/site-packages/fire/core.py", line 138, in Fire
+    component_trace = _Fire(component, args, parsed_flag_args, context, name)
+  File "/n/home00/simassakenis/.conda/envs/tf2/lib/python3.7/site-packages/fire/core.py", line 468, in _Fire
+    target=component.__name__)
+  File "/n/home00/simassakenis/.conda/envs/tf2/lib/python3.7/site-packages/fire/core.py", line 672, in _CallAndUpdateTrace
+    component = fn(*varargs, **kwargs)
+  File "winogender_attn_intervention.py", line 58, in intervene_attention
+    device, filter_quantile)
+  File "winogender_attn_intervention.py", line 25, in get_interventions_winogender
+    assert False
+AssertionError
