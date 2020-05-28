@@ -17,6 +17,7 @@ import statistics
 from utils import batch, convert_results_to_pd
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
 from transformers import TransfoXLLMHeadModel, TransfoXLTokenizer, TransfoXLConfig ### NEW
+from transformers import BertTokenizer, BertForMaskedLM ### NEW
 from gpt2_attention import AttentionOverride
 from txl_attention import TXLAttentionOverride ### NEW
 
@@ -46,9 +47,9 @@ class Intervention():
         # Tokenized bases
         ### NEW ###
         # self.base_strings_tok = [self.enc.encode(s)
-        #                          for s in self.base_strings]
-        self.base_strings_tok = [self.enc.encode(s, add_space_before_punct_symbol=True)
-                                 for s in self.base_strings]
+        #                          for s in self.base_strings] # no punct flag
+        self.base_strings_tok = [self.enc.encode(s, add_space_before_punct_symbol=True, add_special_tokens=False)
+                                 for s in self.base_strings] # punct flag
         ### NEW ###
         # print(self.base_strings_tok)
         self.base_strings_tok = torch.LongTensor(self.base_strings_tok)\
@@ -60,8 +61,9 @@ class Intervention():
         for c in candidates:
             # '. ' added to input so that tokenizer understand that first word follows a space.
             ### NEW ###
-            # tokens = self.enc.tokenize('. ' + c)[1:]
-            tokens = self.enc.tokenize('. ' + c, add_space_before_punct_symbol=True)[1:]
+            # c = c.replace('.', ' .') # manual punct
+            # tokens = self.enc.tokenize('. ' + c)[1:] # no punct flag
+            tokens = self.enc.tokenize('. ' + c, add_space_before_punct_symbol=True)[1:] # punct flag
             ### NEW ###
             self.candidates.append(tokens)
 
@@ -82,12 +84,19 @@ class Model():
         self.device = device
         ### New ###
         self.is_txl = gpt2_version == 'transfo-xl-wt103'
+        self.is_bert = gpt2_version == 'bert-base-uncased'
         if self.is_txl:
             print('****** NEW: Using TransfoXL model')
-            configuration = TransfoXLConfig(mem_len=48, output_attentions=output_attentions)
+            configuration = TransfoXLConfig(mem_len=48, output_attentions=output_attentions) # mem_len=48
+            # configuration = TransfoXLConfig(output_attentions=output_attentions) # mem_len=default
             self.model = TransfoXLLMHeadModel.from_pretrained(
                 'transfo-xl-wt103',
                 config=configuration)
+        elif self.is_bert:
+            print('****** NEW: Using BERT model')
+            self.model = BertForMaskedLM.from_pretrained(
+                'bert-base-uncased',
+                output_attentions=output_attentions)
         else:
             self.model = GPT2LMHeadModel.from_pretrained(
                 gpt2_version,
@@ -100,38 +109,31 @@ class Model():
             print('Randomizing weights')
             self.model.init_weights()
 
-        ### New ###
+        # Options
         self.top_k = 5
 
+        ### New ###
+        self.num_layers = self.model.config.num_hidden_layers
+        self.num_neurons = self.model.config.hidden_size
+        self.num_heads = self.model.config.num_attention_heads
+
         if self.is_txl:
-            # 12 for GPT-2
-            self.num_layers = len(self.model.transformer.layers)
-            # 768 for GPT-2
-            self.num_neurons = self.model.transformer.d_model
-            # 12 for GPT-2
-            self.num_heads = self.model.transformer.n_head
-
             self.attention_layer = lambda layer: self.model.transformer.layers[layer].dec_attn
-
             self.word_emb_layer = self.model.transformer.word_emb
-
             self.neuron_layer = lambda layer: self.model.transformer.layers[layer].pos_ff
-            # Default: [batch_size, seq_len, hidden_dim]
+            # Default: [batch_size, seq_len, hidden_dim], txl: [seq_len, batch_size, hidden_dim]
             self.order_dims = lambda a: (a[1], a[0], *a[2:])
+        elif self.is_bert:
+            self.attention_layer = lambda layer: self.model.bert.encoder.layer[layer].attention
+            self.word_emb_layer = lambda layer: self.model.bert.embeddings.word_embeddings
+            self.neuron_layer = lambda layer: self.model.bert.encoder.layer[layer].output
+            # Default: [batch_size, seq_len, hidden_dim], bert: [batch_size, seq_len, hidden_dim]
+            self.order_dims = lambda a: a
         else:
-            # 12 for GPT-2
-            self.num_layers = len(self.model.transformer.h)
-            # 768 for GPT-2
-            self.num_neurons = self.model.transformer.wte.weight.shape[1]
-            # 12 for GPT-2
-            self.num_heads = self.model.transformer.h[0].attn.n_head
-
             self.attention_layer = lambda layer: self.model.transformer.h[layer].attn
-
             self.word_emb_layer = self.model.transformer.wte
-
             self.neuron_layer = lambda layer: self.model.transformer.h[layer].mlp
-            # Default: [batch_size, seq_len, hidden_dim]
+            # Default: [batch_size, seq_len, hidden_dim], gpt2: [batch_size, seq_len, hidden_dim]
             self.order_dims = lambda a: a
         ### New ###
 
