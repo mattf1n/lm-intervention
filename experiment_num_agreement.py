@@ -346,42 +346,6 @@ class Model():
                 intervention.base_strings_tok[1],
                 intervention.position)
 
-            # TODO: this whole logic can probably be improved
-            # determine effect type and set representations
-
-            # e.g. The teacher said that
-            # if intervention_type == 'man_minus_woman':
-                # context = intervention.base_strings_tok[0]
-                # rep = {k: v - woman_representations[k]
-                       # for k, v in man_representations.items()}
-                # replace_or_diff = 'diff'
-            # # e.g. The teacher said that
-            # elif intervention_type == 'woman_minus_man':
-                # context = intervention.base_strings_tok[0]
-                # rep = {k: v - man_representations[k]
-                       # for k, v in woman_representations.items()}
-                # replace_or_diff = 'diff'
-            # # e.g. The man said that
-            # elif intervention_type == 'man_direct':
-                # context = intervention.base_strings_tok[1]
-                # rep = base_representations
-                # replace_or_diff = 'replace'
-            # # e.g. The teacher said that
-            # elif intervention_type == 'man_indirect':
-                # context = intervention.base_strings_tok[0]
-                # rep = man_representations
-                # replace_or_diff = 'replace'
-            # # e.g. The woman said that
-            # elif intervention_type == 'woman_direct':
-                # context = intervention.base_strings_tok[2]
-                # rep = base_representations
-                # replace_or_diff = 'replace'
-            # # e.g. The teacher said that
-            # elif intervention_type == 'woman_indirect':
-                # context = intervention.base_strings_tok[0]
-                # rep = woman_representations
-                # replace_or_diff = 'replace'
-            
             if intervention_type == 'indirect':
                 context = intervention.base_strings_tok[0]
                 rep = complement_representations

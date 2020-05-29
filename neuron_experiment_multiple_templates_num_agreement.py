@@ -1,6 +1,8 @@
+
 from datetime import datetime
 import os
 import sys
+import random
 
 from utils_num_agreement import convert_results_to_pd
 from experiment_num_agreement import Intervention, Model
@@ -36,23 +38,29 @@ def get_intervention_types():
             'indirect',
             'direct']
 
-def construct_interventions(base_sent, tokenizer, DEVICE, attractor=None):
-    interventions = {}
-    all_word_count = 0
-    used_word_count = 0
-    alts = get_nouns()
+def construct_pairs(attractor=None):
+    pairs = []
     if attractor:
-        alts = []
         for ns, np in get_nouns():
             for p in get_prepositions():
                 for ppns, ppnp in get_preposition_nouns():
                     ppn = ppns if attractor == 'singular' else ppnp
                     pp = ' '.join([p,'the',ppn])
-                    alts.append((' '.join([ns, pp]),' '.join([np,pp])))
+                    pairs.append((' '.join([ns, pp]),' '.join([np,pp])))
+    else:
+        pairs = get_nouns()
+    random.seed(5)
+    return random.sample(pairs, 3)
 
-    for base, alt in alts:
-        all_word_count += 1
+
+def construct_interventions(base_sent, tokenizer, DEVICE, attractor=None):
+    interventions = {}
+    all_word_count = 0
+    used_word_count = 0
+    pairs = construct_pairs(attractor)
+    for base, alt in pairs:
         for v_singular, v_plural in get_verbs():
+            all_word_count += 1
             try: 
                 interventions[base + ' ' + v_singular] = Intervention(
                     tokenizer,
@@ -74,7 +82,8 @@ def run_all(model_type="gpt2", device="cuda", out_dir=".",
     intervention_types = get_intervention_types()
     # Initialize Model and Tokenizer
     tokenizer = GPT2Tokenizer.from_pretrained(model_type)
-    model = Model(device=device, gpt2_version=model_type, random_weights=random_weights)
+    model = Model(device=device, gpt2_version=model_type, 
+            random_weights=random_weights)
 
     # Set up folder if it does not exist
     dt_string = datetime.now().strftime("%Y%m%d")
@@ -123,4 +132,5 @@ if __name__ == "__main__":
     if sys.argv[4] and sys.argv[4] == 'true':
         random_weights = True
         
-    run_all(model, device, out_dir, random_weights=random_weights, attractor=attractor)
+    run_all(model, device, out_dir, random_weights=random_weights, 
+            attractor=attractor)
