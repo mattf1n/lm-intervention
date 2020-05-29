@@ -5,9 +5,10 @@ from glob import glob
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 import tikzplotlib
+import sys
 
-PATH = 'results/20200502_neuron_intervention/'
-WRITEUP_PATH = '../../Google Drive/research/writeup/'
+PATH = sys.argv[1]
+FIGURES_PATH = sys.argv[2]
 MODELS = ['D', 'S', 'M', 'L', 'XL', 'Rand']
 
 class experiment():
@@ -95,8 +96,8 @@ class experiment():
         plt.ylabel('Layer')
         plt.xlabel('Neuron')
         plt.colorbar()
-        tikzplotlib.save(WRITEUP_PATH + self.filename + '.tex')
-        plt.savefig(WRITEUP_PATH + self.filename + '.pdf')
+        tikzplotlib.save(FIGURES_PATH + self.filename + '.tex')
+        plt.savefig(FIGURES_PATH + self.filename + '.pdf')
         plt.clf()
 
 def save_nie_chart(experiments, top=True):
@@ -116,7 +117,7 @@ def save_nie_chart(experiments, top=True):
             plt.plot(exp.top_5pct, color)
         plt.ylabel('Natural Indirect Effect')
         plt.xlabel('Layer')
-    tikzplotlib.save(WRITEUP_PATH + 'nie' + postfix + '.tex')
+    tikzplotlib.save(FIGURES_PATH + 'nie' + postfix + '.tex')
     plt.clf()
 
 def save_ate_chart(experiments):
@@ -130,14 +131,15 @@ def save_ate_chart(experiments):
     # plt.xticks(rotation=45)
     plt.ylabel('Total Effect')
     plt.xlabel('Model')
-    plt.savefig(WRITEUP_PATH + 'total_effect.pgf')
-    tikzplotlib.save(WRITEUP_PATH + 'total_effect.tex')
+    plt.savefig(FIGURES_PATH + 'total_effect.pgf')
+    tikzplotlib.save(FIGURES_PATH + 'total_effect.tex')
     plt.clf()
 
-experiments = [experiment(filename) 
-    for filename in tqdm(glob(PATH + '*indirect*.csv'), leave=False, 
-        desc='Loading experiments')]
+if __name__ == "__main__":
+    experiments = [experiment(filename) 
+        for filename in tqdm(glob(PATH + '*indirect*.csv'), leave=False, 
+            desc='Loading experiments')]
 
-save_nie_chart(experiments)
-save_nie_chart(experiments, top=False)
-save_ate_chart(experiments)
+    save_nie_chart(experiments)
+    save_nie_chart(experiments, top=False)
+    save_ate_chart(experiments)
