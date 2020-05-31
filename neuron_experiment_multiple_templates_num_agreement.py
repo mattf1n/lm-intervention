@@ -29,8 +29,7 @@ def construct_pairs(attractor, seed, examples):
     else:
         pairs = [('The ' + s, 'The ' + p) for s, p in get_nouns()]
     random.seed(seed)
-    return random.sample(pairs, examples)
-
+    return random.sample(pairs, examples) if examples > 0 else pairs
 
 def construct_interventions(tokenizer, DEVICE, attractor, seed, examples):
     interventions = {}
@@ -102,6 +101,6 @@ if __name__ == "__main__":
     random_weights = sys.argv[4] == 'true' # true or false
     attractor = sys.argv[5] # singular, plural or none
     seed = int(sys.argv[6]) # to allow consistent sampling
-    examples = int(sys.argv[7]) # number of examples to try 
+    examples = int(sys.argv[7]) # number of examples to try, 0 for all 
         
     run_all(model, device, out_dir, random_weights, attractor, seed, examples)
