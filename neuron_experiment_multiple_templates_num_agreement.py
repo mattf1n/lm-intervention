@@ -13,58 +13,38 @@ from vocab_utils import get_nouns, get_verbs, get_prepositions, get_preposition_
 Run all the extraction for a model across many templates
 '''
 
-
-def get_profession_list():
-    # Get the list of all considered professions
-
-    word_list = []
-    with open('singular_nouns.json', 'r') as f:
-        for l in f:
-            # there is only one line that eval's to an array
-            for j in eval(l):
-                word_list.append(j)
-    return word_list
-
-def get_template_list():
-    return ['The {}']
-
 def get_intervention_types():
-    return [#'man_minus_woman',
-            #'woman_minus_man',
-            #'man_direct',
-            #'man_indirect',
-            #'woman_direct:,
-            # 'woman_indirect'
-            'indirect',
-            'direct']
+    return ['indirect', 'direct']
 
-def construct_pairs(attractor=None):
+def construct_pairs(attractor, seed, examples):
     pairs = []
-    if attractor:
+    if attractor in ['singular', 'plural']:
         for ns, np in get_nouns():
             for p in get_prepositions():
                 for ppns, ppnp in get_preposition_nouns():
                     ppn = ppns if attractor == 'singular' else ppnp
                     pp = ' '.join([p,'the',ppn])
-                    pairs.append((' '.join([ns, pp]),' '.join([np,pp])))
+                    pairs.append(
+                            (' '.join(['The',ns, pp]),' '.join(['The',np,pp])))
     else:
-        pairs = get_nouns()
-    random.seed(5)
-    return random.sample(pairs, 3)
+        pairs = [('The ' + s, 'The ' + p) for s, p in get_nouns()]
+    random.seed(seed)
+    return random.sample(pairs, examples)
 
 
-def construct_interventions(base_sent, tokenizer, DEVICE, attractor=None):
+def construct_interventions(tokenizer, DEVICE, attractor, seed, examples):
     interventions = {}
     all_word_count = 0
     used_word_count = 0
-    pairs = construct_pairs(attractor)
+    pairs = construct_pairs(attractor, seed, examples)
+    print(pairs[0])
     for base, alt in pairs:
         for v_singular, v_plural in get_verbs():
             all_word_count += 1
             try: 
                 interventions[base + ' ' + v_singular] = Intervention(
                     tokenizer,
-                    base_sent,
+                    '{}',
                     [base, alt],
                     [v_singular, v_plural],
                     device=DEVICE)
@@ -75,10 +55,9 @@ def construct_interventions(base_sent, tokenizer, DEVICE, attractor=None):
     return interventions
 
 def run_all(model_type="gpt2", device="cuda", out_dir=".",
-        random_weights=False, attractor=None):
+        random_weights=False, attractor=None, seed=5, examples=100):
     print("Model:", model_type)
     # Set up all the potential combinations
-    templates = get_template_list()
     intervention_types = get_intervention_types()
     # Initialize Model and Tokenizer
     tokenizer = GPT2Tokenizer.from_pretrained(model_type)
@@ -94,43 +73,35 @@ def run_all(model_type="gpt2", device="cuda", out_dir=".",
     if not os.path.exists(base_path):
         os.makedirs(base_path)
 
-    # Iterate over all possible templates
-    for temp in templates:
-        print("Running template \"{}\" now...".format(
-            temp))
-        # Fill in all professions into current template
-        interventions = construct_interventions(
-            temp, tokenizer, device, attractor=attractor)
-        # Consider all the intervention types
-        for itype in intervention_types:
-            print("\t Running with intervention: {}".format(
-                itype))
-            # Run actual exp
-            intervention_results = model.neuron_intervention_experiment(
-                interventions, itype, alpha=1.0)
+    # Fill in all professions into current template
+    interventions = construct_interventions(tokenizer, device, 
+            attractor, seed, examples)
+    # Consider all the intervention types
+    for itype in intervention_types:
+        print("\t Running with intervention: {}".format(
+            itype))
+        # Run actual exp
+        intervention_results = model.neuron_intervention_experiment(
+            interventions, itype, alpha=1.0)
 
-            df = convert_results_to_pd(interventions, intervention_results)
-            # Generate file name
-            # temp_string = "_".join(temp.replace("{}", "X").split())
-            random = ['random'] if random_weights else []
-            fcomponents = random + [str(attractor), itype, model_type]
-            fname = "_".join(fcomponents)
-            # Finally, save each exp separately
-            df.to_csv(os.path.join(base_path, fname+".csv"))
+        df = convert_results_to_pd(interventions, intervention_results)
+        # Generate file name
+        random = ['random'] if random_weights else []
+        fcomponents = random + [str(attractor), itype, model_type]
+        fname = "_".join(fcomponents)
+        # Finally, save each exp separately
+        df.to_csv(os.path.join(base_path, fname+".csv"))
 
 
 if __name__ == "__main__":
     if not (len(sys.argv) == 4 or len(sys.argv) == 5 or len(sys.argv) == 6):
         print("USAGE: python ", sys.argv[0], "<model> <device> <out_dir> [<random_weights>] attractor")
-        print('<template_indices> is an optional comma-separated list of indices of templates to use, 1-indexed')
     model = sys.argv[1] # distilgpt2, gpt2, gpt2-medium, gpt2-large, gpt2-xl
     device = sys.argv[2] # cpu vs cuda
     out_dir = sys.argv[3] # dir to write results
-    attractor = None if sys.argv[5] == 'None' else sys.argv[5]
-
-    random_weights = False
-    if sys.argv[4] and sys.argv[4] == 'true':
-        random_weights = True
+    random_weights = sys.argv[4] == 'true' # true or false
+    attractor = sys.argv[5] # singular, plural or none
+    seed = int(sys.argv[6]) # to allow consistent sampling
+    examples = int(sys.argv[7]) # number of examples to try 
         
-    run_all(model, device, out_dir, random_weights=random_weights, 
-            attractor=attractor)
+    run_all(model, device, out_dir, random_weights, attractor, seed, examples)
