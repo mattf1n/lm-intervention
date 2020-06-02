@@ -93,8 +93,9 @@ def run_all(model_type="gpt2", device="cuda", out_dir=".",
 
 
 if __name__ == "__main__":
-    if not (len(sys.argv) == 4 or len(sys.argv) == 5 or len(sys.argv) == 6):
-        print("USAGE: python ", sys.argv[0], "<model> <device> <out_dir> [<random_weights>] attractor")
+    if not (len(sys.argv) == 8):
+        print("USAGE: python ", sys.argv[0], 
+"<model> <device> <out_dir> <random_weights> <attractor> <seed> <examples>")
     model = sys.argv[1] # distilgpt2, gpt2, gpt2-medium, gpt2-large, gpt2-xl
     device = sys.argv[2] # cpu vs cuda
     out_dir = sys.argv[3] # dir to write results
