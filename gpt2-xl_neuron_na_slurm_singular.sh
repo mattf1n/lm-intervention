@@ -9,4 +9,4 @@
 #SBATCH -e myerrors_%j.err  # File to which STDERR will be written, %j inserts jobid
 module load Anaconda3/2019.10
 source activate myenv
-python neuron_experiment_multiple_templates_num_agreement.py gpt2-xl cuda ./ false none 0 0
+python neuron_experiment_multiple_templates_num_agreement.py gpt2-xl cuda ./ false singular 4 30
