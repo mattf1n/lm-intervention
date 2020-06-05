@@ -4,7 +4,7 @@ import pandas as pd
 from glob import glob
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-import tikzplotlib
+# import tikzplotlib
 import sys
 
 PATH = sys.argv[1]
@@ -96,7 +96,7 @@ class experiment():
         plt.ylabel('Layer')
         plt.xlabel('Neuron')
         plt.colorbar()
-        tikzplotlib.save(FIGURES_PATH + self.filename + '.tex')
+        # tikzplotlib.save(FIGURES_PATH + self.filename + '.tex')
         plt.savefig(FIGURES_PATH + self.filename + '.pdf')
         plt.clf()
 
@@ -117,7 +117,8 @@ def save_nie_chart(experiments, top=True):
             plt.plot(exp.top_5pct, color)
         plt.ylabel('Natural Indirect Effect')
         plt.xlabel('Layer')
-    tikzplotlib.save(FIGURES_PATH + 'nie' + postfix + '.tex')
+    # tikzplotlib.save(FIGURES_PATH + 'nie' + postfix + '.tex')
+    plt.savefig(FIGURES_PATH + 'nie.pdf')
     plt.clf()
 
 def save_ate_chart(experiments):
@@ -132,7 +133,8 @@ def save_ate_chart(experiments):
     plt.ylabel('Total Effect')
     plt.xlabel('Model')
     plt.savefig(FIGURES_PATH + 'total_effect.pgf')
-    tikzplotlib.save(FIGURES_PATH + 'total_effect.tex')
+    # tikzplotlib.save(FIGURES_PATH + 'total_effect.tex')
+    plt.savefig(FIGURES_PATH + 'ate.pdf')
     plt.clf()
 
 if __name__ == "__main__":
