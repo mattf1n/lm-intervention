@@ -4,6 +4,7 @@
 *.feather
 *.err
 *.out
+results/na_neuron_intervention/*.txt
 __pycache__/
 *.py[cod]
 *$py.class
