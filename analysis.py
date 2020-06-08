@@ -46,11 +46,11 @@ class experiment():
                         desc='Loading dataframe')]
             self.df = pd.concat(df_list)
             del df_list
-            self.number_of_layers = int(max(self.df['layer']))
-            self.neurons_per_layer = int(max(self.df['neuron']))
             self.df.to_feather(PATH + self.filename + '.feather')
         else:
             self.df = pd.read_feather(PATH + self.filename + '.feather')
+        self.number_of_layers = int(max(self.df['layer']))
+        self.neurons_per_layer = int(max(self.df['neuron']))
         return self.df
 
     def get_total_effect(self):
@@ -62,7 +62,7 @@ class experiment():
         self.te = total_effects.mean()
         return self.te
 
-    def get_effects(self):
+    def get_effects(self, attractor='all'):
         if self.is_analyzed():
             self.effects = np.loadtxt(PATH + self.filename + '.txt')
         else:
