@@ -7,7 +7,7 @@ import random
 from utils_num_agreement import convert_results_to_pd
 from experiment_num_agreement import Intervention, Model
 from transformers import GPT2Tokenizer
-from vocab_utils import get_nouns, get_verbs, get_prepositions, get_preposition_nouns
+from vocab_utils import get_nouns, get_verbs, get_prepositions, get_preposition_nouns, get_adv1s, get_adv2s
 
 '''
 Run all the extraction for a model across many templates
@@ -26,6 +26,13 @@ def construct_pairs(attractor, seed, examples):
                     pp = ' '.join([p,'the',ppn])
                     pairs.append(
                             (' '.join(['The',ns, pp]),' '.join(['The',np,pp])))
+    elif attractor == 'distractor':
+        for ns, np in get_nouns():
+            for adv1 in get_adv1s():
+                for adv2 in get_adv2s():
+                    if adv1 != adv2:
+                        pairs.append((' '.join(['The',ns,adv1,'and',adv2]),
+                                ' '.join(['The',np,adv1,'and',adv2])))
     else:
         pairs = [('The ' + s, 'The ' + p) for s, p in get_nouns()]
     random.seed(seed)
