@@ -4,7 +4,6 @@ import pandas as pd
 from glob import glob
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-# import tikzplotlib
 import sys
 
 PATH = sys.argv[1]
@@ -92,11 +91,9 @@ class experiment():
         plt.figure(dpi=1000)
         plt.imshow(self.effects, aspect='auto', cmap='inferno',
                 interpolation=None, origin='lower')
-        # plt.title(self.model)
         plt.ylabel('Layer')
         plt.xlabel('Neuron')
         plt.colorbar()
-        # tikzplotlib.save(FIGURES_PATH + self.filename + '.tex')
         plt.savefig(FIGURES_PATH + self.filename + '.pdf')
         plt.clf()
 
@@ -117,7 +114,6 @@ def save_nie_chart(experiments, top=True):
             plt.plot(exp.top_5pct, color)
         plt.ylabel('Natural Indirect Effect')
         plt.xlabel('Layer')
-    # tikzplotlib.save(FIGURES_PATH + 'nie' + postfix + '.tex')
     plt.savefig(FIGURES_PATH + 'nie.pdf')
     plt.clf()
 
@@ -129,11 +125,9 @@ def save_ate_chart(experiments):
     total_effects = [exp.get_total_effect() 
             for exp in tqdm(iso, leave=False, desc='Saving ATE chart')]
     plt.bar(titles, total_effects)
-    # plt.xticks(rotation=45)
     plt.ylabel('Total Effect')
     plt.xlabel('Model')
     plt.savefig(FIGURES_PATH + 'total_effect.pgf')
-    # tikzplotlib.save(FIGURES_PATH + 'total_effect.tex')
     plt.savefig(FIGURES_PATH + 'ate.pdf')
     plt.clf()
 
