@@ -16,11 +16,16 @@ nounpp = pd.read_csv(PATH + 'nounpp.txt', sep=' |\t|_',
                             'pp_noun', 'verb', 'n_number',
                             'pp_number', 'grammaticality', 'id'])
 
+adv = pd.read_csv(PATH + 'adv_conjunction.txt', sep=' |\t|_', engine='python',
+        names=['The','noun','adv1', 'and', 'adv2','verb','number','grammaticality','id'])
+
 
 # Construct nouns
-n_singular = nounpp['noun'][nounpp['n_number'] == 'singular']        .drop_duplicates().reset_index(drop=True)
+n_singular = nounpp['noun'][nounpp['n_number'] == 'singular']\
+        .drop_duplicates().reset_index(drop=True)
 
-n_plural = nounpp['noun'][nounpp['n_number'] == 'plural']        .drop_duplicates().reset_index(drop=True)
+n_plural = nounpp['noun'][nounpp['n_number'] == 'plural']\
+        .drop_duplicates().reset_index(drop=True)
 
 n_frame = {'n_singular':n_singular, 'n_plural':n_plural}
 
@@ -28,9 +33,13 @@ nouns = pd.DataFrame(n_frame)
 
 
 # Construct verbs
-v_singular = nounpp['verb'][nounpp['n_number'] == 'singular']        [nounpp['grammaticality'] == 'correct']        .drop_duplicates().reset_index(drop=True)
+v_singular = nounpp['verb'][nounpp['n_number'] == 'singular']\
+        [nounpp['grammaticality'] == 'correct'].drop_duplicates()\
+        .reset_index(drop=True)
 
-v_plural = nounpp['verb'][nounpp['n_number'] == 'singular']        [nounpp['grammaticality'] == 'wrong']        .drop_duplicates().reset_index(drop=True)
+v_plural = nounpp['verb'][nounpp['n_number'] == 'singular']\
+        [nounpp['grammaticality'] == 'wrong'].drop_duplicates()\
+        .reset_index(drop=True)
 
 v_frame = {'v_singular':v_singular, 'v_plural':v_plural}
 
@@ -38,9 +47,11 @@ verbs = pd.DataFrame(v_frame)
 
 
 # Construct prepositional nouns
-ppn_singular = nounpp['pp_noun'][nounpp['pp_number'] == 'singular']        .drop_duplicates().sort_values().reset_index(drop=True)
+ppn_singular = nounpp['pp_noun'][nounpp['pp_number'] == 'singular']\
+        .drop_duplicates().sort_values().reset_index(drop=True)
 
-ppn_plural = nounpp['pp_noun'][nounpp['pp_number'] == 'plural']        .drop_duplicates().sort_values().reset_index(drop=True)
+ppn_plural = nounpp['pp_noun'][nounpp['pp_number'] == 'plural']\
+        .drop_duplicates().sort_values().reset_index(drop=True)
 
 ppn_frame = {'ppn_singular':ppn_singular, 'ppn_plural':ppn_plural}
 
@@ -49,6 +60,10 @@ ppns = pd.DataFrame(ppn_frame)
 
 # Construct prepositions
 prepositions = nounpp['preposition'].drop_duplicates()
+
+# Construct adverbs
+adv1s = adv['adv1'].drop_duplicates()
+adv2s = adv['adv2'].drop_duplicates()
 
 
 def get_nouns():
@@ -70,3 +85,12 @@ def get_prepositions():
 def make_template(noun, preposition, ppn):
     return ' '.join([noun, preposition, 'the', ppn])
 
+def get_adv1s():
+    return adv1s.tolist()
+
+def get_adv2s():
+    return adv2s.tolist()
+
+if __name__ ==  '__main__':
+    print(get_adv1s())
+    print(get_adv2s())
