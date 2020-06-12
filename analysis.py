@@ -127,7 +127,6 @@ def save_ate_chart(experiments):
     plt.bar(titles, total_effects)
     plt.ylabel('Total Effect')
     plt.xlabel('Model')
-    plt.savefig(FIGURES_PATH + 'total_effect.pgf')
     plt.savefig(FIGURES_PATH + 'ate.pdf')
     plt.clf()
 
