@@ -98,24 +98,23 @@ class experiment():
         plt.clf()
 
 def save_nie_chart(experiments, top=True):
-    postfix = 'top' if top else 'top5'
-    for exp in tqdm(experiments, leave=False, desc='Saving NIE chart for ' + postfix):
-        exp.get_top()
-        color = 'blue'
-        if 'random' in exp.filename:
-            color = 'gray'
-        elif 'plural' in exp.filename:
-            color = 'red'
-        elif 'singular' in exp.filename:
-            color = 'green'
-        if top:
-            plt.plot(exp.top, color)
-        else:
-            plt.plot(exp.top_5pct, color)
-        plt.ylabel('Natural Indirect Effect')
-        plt.xlabel('Layer')
-    plt.savefig(FIGURES_PATH + 'nie.pdf')
-    plt.clf()
+    prefix = 'top' if top else 'top5'
+    for variation in ['random', 'plural', 'singular', 'none', 'distractor']:
+        for exp in tqdm(experiments, leave=False, 
+                desc='Saving NIE chart for ' + variation + ' ' + prefix):
+            try:
+                exp.top
+                exp.top_5pct
+            except:
+                exp.get_top()
+            if top:
+                plt.plot(exp.top, color)
+            else:
+                plt.plot(exp.top_5pct, color)
+            plt.ylabel('Natural Indirect Effect')
+            plt.xlabel('Layer')
+        plt.savefig(FIGURES_PATH + '_'.join([prefix, variation, 'nie.pdf']))
+        plt.clf()
 
 def save_ate_chart(experiments):
     plt.figure(figsize=(4,3))
