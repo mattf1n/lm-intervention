@@ -108,9 +108,9 @@ def save_nie_chart(experiments, top=True):
             except:
                 exp.get_top()
             if top:
-                plt.plot(exp.top, color)
+                plt.plot(exp.top)
             else:
-                plt.plot(exp.top_5pct, color)
+                plt.plot(exp.top_5pct)
             plt.ylabel('Natural Indirect Effect')
             plt.xlabel('Layer')
         plt.savefig(FIGURES_PATH + '_'.join([prefix, variation, 'nie.pdf']))
@@ -133,7 +133,6 @@ if __name__ == "__main__":
     experiments = [experiment(filename) 
         for filename in tqdm(glob(PATH + '*indirect*.csv'), leave=False, 
             desc='Loading experiments')]
-
     save_nie_chart(experiments)
     save_nie_chart(experiments, top=False)
     save_ate_chart(experiments)
