@@ -51,12 +51,19 @@ class Intervention():
         # Where to intervene
         self.position = base_string.split().index('{}')
 
-        self.candidates = []
+        self.candidates = [] 
         for c in candidates:
-            # '. ' added to input so that tokenizer understand that first word follows a space.
-            tokens = self.enc.tokenize('. ' + c)[1:]
+            # '. ' added to input so that tokenizer understand that first word
+            # follows a space.
+            tokens = self.enc.tokenize('. ' + c)[1:] 
             assert(len(tokens) == 1)
             self.candidates.append(tokens)
+
+        for s in substitutes:
+            # '. ' added to input so that tokenizer understand that first word
+            # follows a space.
+            tokens = self.enc.tokenize('. ' + s)[1:] 
+            assert(len(tokens) == 1)
 
         self.candidates_tok = [self.enc.convert_tokens_to_ids(tokens)
                                for tokens in self.candidates]

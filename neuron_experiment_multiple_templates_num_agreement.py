@@ -8,6 +8,7 @@ from utils_num_agreement import convert_results_to_pd
 from experiment_num_agreement import Intervention, Model
 from transformers import GPT2Tokenizer
 from vocab_utils import get_nouns, get_verbs, get_prepositions, get_preposition_nouns, get_adv1s, get_adv2s
+import vocab_utils as vocab
 
 '''
 Run all the extraction for a model across many templates
@@ -16,48 +17,48 @@ Run all the extraction for a model across many templates
 def get_intervention_types():
     return ['indirect', 'direct']
 
-def construct_pairs(attractor, seed, examples):
-    pairs = []
-    if attractor in ['singular', 'plural']:
-        for ns, np in get_nouns():
-            for p in get_prepositions():
-                for ppns, ppnp in get_preposition_nouns():
-                    ppn = ppns if attractor == 'singular' else ppnp
-                    pp = ' '.join([p,'the',ppn])
-                    pairs.append(
-                            (' '.join(['The',ns, pp]),' '.join(['The',np,pp])))
+def construct_templates():
+    templates = []
+    if attractor in  ['singular', 'plural']:
+        for p in get_prepositions():
+            for ppns, ppnp in get_preposition_nouns():
+                ppn = ppns if attractor == 'singular' else ppnp
+                template = ' '.join(['The', '{}', p, 'the', ppn])
+                templates.append(template)
     elif attractor == 'distractor':
-        for ns, np in get_nouns():
-            for adv1 in get_adv1s():
-                for adv2 in get_adv2s():
-                    if adv1 != adv2:
-                        pairs.append((' '.join(['The',ns,adv1,'and',adv2]),
-                                ' '.join(['The',np,adv1,'and',adv2])))
+        for  adv1 in  get_adv1s():
+            for adv2 in get_adv2s():
+                templates.append(' '.join(['The', '{}', adv1, 'and', adv2]))
+
     else:
-        pairs = [('The ' + s, 'The ' + p) for s, p in get_nouns()]
-    random.seed(seed)
-    return random.sample(pairs, examples) if examples > 0 else pairs
+        templates = ['The {}']
+    return templates
 
 def construct_interventions(tokenizer, DEVICE, attractor, seed, examples):
     interventions = {}
     all_word_count = 0
     used_word_count = 0
-    pairs = construct_pairs(attractor, seed, examples)
-    print(pairs[0])
-    for base, alt in pairs:
-        for v_singular, v_plural in get_verbs():
-            all_word_count += 1
-            try: 
-                interventions[base + ' ' + v_singular] = Intervention(
-                    tokenizer,
-                    '{}',
-                    [base, alt],
-                    [v_singular, v_plural],
-                    device=DEVICE)
-                used_word_count += 1
-            except:
-                pass
+    templates = construct_templates()
+    for temp in templates:
+        for ns, np in vocab.get_nouns():
+            for v_singular, v_plural in vocab.get_verbs():
+                all_word_count += 1
+                try: 
+                    intervention_name = '_'.join([temp, ns, v_singular])
+                    interventions[intervention_name] = Intervention(
+                        tokenizer,
+                        temp,
+                        [ns, np],
+                        [v_singular, v_plural],
+                        device=DEVICE)
+                    used_word_count += 1
+                except Exception as e:
+                    pass
     print(f"\t Only used {used_word_count}/{all_word_count} nouns due to tokenizer")
+    if examples > 0 and len(interventions) >= examples:
+        random.seed(seed)
+        interventions = {k: v 
+                for k, v in random.sample(interventions.items(), examples)}
     return interventions
 
 def run_all(model_type="gpt2", device="cuda", out_dir=".",
@@ -69,7 +70,6 @@ def run_all(model_type="gpt2", device="cuda", out_dir=".",
     tokenizer = GPT2Tokenizer.from_pretrained(model_type)
     model = Model(device=device, gpt2_version=model_type, 
             random_weights=random_weights)
-
     # Set up folder if it does not exist
     dt_string = datetime.now().strftime("%Y%m%d")
     folder_name = dt_string+"_neuron_intervention"
@@ -78,10 +78,8 @@ def run_all(model_type="gpt2", device="cuda", out_dir=".",
         base_path = os.path.join(base_path, "random")
     if not os.path.exists(base_path):
         os.makedirs(base_path)
-
-    # Fill in all professions into current template
-    interventions = construct_interventions(tokenizer, device, 
-            attractor, seed, examples)
+    interventions = construct_interventions(tokenizer, device, attractor, seed,
+            examples)
     # Consider all the intervention types
     for itype in intervention_types:
         print("\t Running with intervention: {}".format(
