@@ -102,17 +102,18 @@ def save_nie_chart(experiments, top=True):
     for variation in ['random', 'plural', 'singular', 'none', 'distractor']:
         for exp in tqdm(experiments, leave=False, 
                 desc='Saving NIE chart for ' + variation + ' ' + prefix):
-            try:
-                exp.top
-                exp.top_5pct
-            except:
-                exp.get_top()
-            if top:
-                plt.plot(exp.top)
-            else:
-                plt.plot(exp.top_5pct)
-            plt.ylabel('Natural Indirect Effect')
-            plt.xlabel('Layer')
+            if variation in exp.filename:
+                try:
+                    exp.top
+                    exp.top_5pct
+                except:
+                    exp.get_top()
+                if top:
+                    plt.plot(exp.top)
+                else:
+                    plt.plot(exp.top_5pct)
+                plt.ylabel('Natural Indirect Effect')
+                plt.xlabel('Layer')
         plt.savefig(FIGURES_PATH + '_'.join([prefix, variation, 'nie.pdf']))
         plt.clf()
 
