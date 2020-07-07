@@ -5,6 +5,10 @@ from glob import glob
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 import sys
+import seaborn as sns
+
+sns.set_context('talk')
+sns.set_style('whitegrid')
 
 PATH = sys.argv[1]
 FIGURES_PATH = sys.argv[2]
@@ -83,6 +87,7 @@ class experiment():
 
     def get_top(self):
         self.top = np.array([max(layer) for layer in self.effects])
+        self.std = np.array([np.std(layer) for layer in self.effects])
         pct = len(self.effects[0]) // 20
         self.top_5pct = np.array([np.mean(np.partition(layer,-pct)[-pct:]) 
             for layer in self.effects])
@@ -110,8 +115,13 @@ def save_nie_chart(experiments, top=True):
                     exp.get_top()
                 if top:
                     plt.plot(exp.top)
+                    plt.fill_between(exp.std)
+                    plt.fill_between(exp.top - exp.std,
+                            exp.top + exp.std)
                 else:
                     plt.plot(exp.top_5pct)
+                    plt.fill_between(exp.top_5pct - exp.std,
+                            exp.top_5pct + exp.std)
                 plt.ylabel('Natural Indirect Effect')
                 plt.xlabel('Layer')
         plt.savefig(FIGURES_PATH + '_'.join([prefix, variation, 'nie.pdf']))
@@ -134,6 +144,6 @@ if __name__ == "__main__":
     experiments = [experiment(filename) 
         for filename in tqdm(glob(PATH + '*indirect*.csv'), leave=False, 
             desc='Loading experiments')]
-    save_nie_chart(experiments)
+    # save_nie_chart(experiments)
     save_nie_chart(experiments, top=False)
     save_ate_chart(experiments)
