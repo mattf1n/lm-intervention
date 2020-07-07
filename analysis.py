@@ -14,6 +14,8 @@ PATH = sys.argv[1]
 FIGURES_PATH = sys.argv[2]
 MODELS = ['D', 'S', 'M', 'L', 'XL', 'Rand']
 
+cmap = ["#9b59b6", "#3498db", "#95a5a6", "#e74c3c", "#34495e", "#2ecc71"]
+
 class experiment():
     def __init__(self, filename):
         self.filename = os.path.splitext(filename)[0].split('/')[-1]
@@ -87,8 +89,9 @@ class experiment():
 
     def get_top(self):
         self.top = np.array([max(layer) for layer in self.effects])
-        self.std = np.array([np.std(layer) for layer in self.effects])
         pct = len(self.effects[0]) // 20
+        top5pct = [np.partition(layer, -pct)[-pct:] for layer in self.effects]
+        self.std = np.array([np.std(layer) for layer in top5pct])
         self.top_5pct = np.array([np.mean(np.partition(layer,-pct)[-pct:]) 
             for layer in self.effects])
 
@@ -104,7 +107,9 @@ class experiment():
 
 def save_nie_chart(experiments, top=True):
     prefix = 'top' if top else 'top5'
+    color_index = 0
     for variation in ['random', 'plural', 'singular', 'none', 'distractor']:
+        plt.figure(figsize=(10,4))
         for exp in tqdm(experiments, leave=False, 
                 desc='Saving NIE chart for ' + variation + ' ' + prefix):
             if variation in exp.filename:
@@ -114,16 +119,16 @@ def save_nie_chart(experiments, top=True):
                 except:
                     exp.get_top()
                 if top:
-                    plt.plot(exp.top)
-                    plt.fill_between(exp.std)
+                    plt.plot(exp.top, color=cmap[color_index])
                     plt.fill_between(exp.top - exp.std,
-                            exp.top + exp.std)
+                            exp.top + exp.std, alpha=0.15, color=cmap[color_index])
                 else:
                     plt.plot(exp.top_5pct)
-                    plt.fill_between(exp.top_5pct - exp.std,
-                            exp.top_5pct + exp.std)
+                    plt.fill_between([i for i in range(len(exp.top))], exp.top_5pct - exp.std,
+                            exp.top_5pct + exp.std, alpha=0.15, color=cmap[color_index])
                 plt.ylabel('Natural Indirect Effect')
                 plt.xlabel('Layer')
+            color_index += 1
         plt.savefig(FIGURES_PATH + '_'.join([prefix, variation, 'nie.pdf']))
         plt.clf()
 
