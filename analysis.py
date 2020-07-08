@@ -102,7 +102,7 @@ class experiment():
         plt.ylabel('Layer')
         plt.xlabel('Neuron')
         plt.colorbar()
-        plt.savefig(FIGURES_PATH + self.filename + '.pdf')
+        plt.savefig(FIGURES_PATH + self.filename + '.pdf', bbox_inches='tight')
         plt.clf()
 
 def save_nie_chart(experiments, top=True):
@@ -129,7 +129,7 @@ def save_nie_chart(experiments, top=True):
                 plt.ylabel('Natural Indirect Effect')
                 plt.xlabel('Layer')
             color_index += 1
-        plt.savefig(FIGURES_PATH + '_'.join([prefix, variation, 'nie.pdf']))
+        plt.savefig(FIGURES_PATH + '_'.join([prefix, variation, 'nie.pdf']), bbox_inches='tight')
         plt.clf()
 
 def save_ate_chart(experiments):
@@ -142,7 +142,7 @@ def save_ate_chart(experiments):
     plt.bar(titles, total_effects)
     plt.ylabel('Total Effect')
     plt.xlabel('Model')
-    plt.savefig(FIGURES_PATH + 'ate.pdf')
+    plt.savefig(FIGURES_PATH + 'ate.pdf', bbox_inches='tight')
     plt.clf()
 
 if __name__ == "__main__":
