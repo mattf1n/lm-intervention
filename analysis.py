@@ -68,6 +68,7 @@ class experiment():
             self.effects = np.loadtxt(PATH + self.filename + '.txt')
         else:
             df = self.df
+
             ies = np.zeros((self.number_of_layers, self.neurons_per_layer))
             for l in tqdm(range(self.number_of_layers), desc='Layers', 
                     leave=False):
@@ -93,12 +94,10 @@ class experiment():
 
     def save_heatmap(self):
         plt.figure(dpi=1000)
-        plt.imshow(self.effects, aspect='auto', cmap='inferno',
-                interpolation=None, origin='lower')
+        sns.heatmap(self.effects, cmap='inferno')
         plt.ylabel('Layer')
         plt.xlabel('Neuron')
-        plt.colorbar()
-        plt.savefig(FIGURES_PATH + self.filename + '.pdf', bbox_inches='tight')
+        plt.savefig(FIGURES_PATH + self.filename + '.png', bbox_inches='tight')
         plt.clf()
 
 def save_nie_chart(experiments, top=True):
