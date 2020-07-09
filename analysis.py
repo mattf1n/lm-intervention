@@ -12,25 +12,21 @@ sns.set_style('whitegrid')
 
 PATH = sys.argv[1]
 FIGURES_PATH = sys.argv[2]
-MODELS = ['D', 'S', 'M', 'L', 'XL', 'Rand']
-
-cmap = ["#9b59b6", "#3498db", "#95a5a6", "#e74c3c", "#34495e", "#2ecc71"]
+MODELS = ['Distill', 'Small', 'Medium', 'Large', 'XL']
 
 class experiment():
     def __init__(self, filename):
         self.filename = os.path.splitext(filename)[0].split('/')[-1]
         if 'distil' in self.filename:
-            self.model = 'D'
+            self.model = 'Distill'
         elif 'medium' in self.filename:
-            self.model = 'M'
+            self.model = 'Medium'
         elif 'large' in self.filename:
-            self.model = 'L'
+            self.model = 'Large'
         elif 'xl' in self.filename:
             self.model = 'XL'
-        elif 'rand' in self.filename:
-            self.model = 'Rand'
         else:
-            self.model = 'S'
+            self.model = 'Small'
         self.random = 'random' in self.filename
         self.get_df()
         self.get_effects()
@@ -108,7 +104,7 @@ class experiment():
 def save_nie_chart(experiments, top=True):
     prefix = 'top' if top else 'top5'
     color_index = 0
-    for variation in ['random', 'plural', 'singular', 'none', 'distractor']:
+    for variation in ['plural', 'singular', 'none', 'distractor']:
         plt.figure(figsize=(10,4))
         for exp in tqdm(experiments, leave=False, 
                 desc='Saving NIE chart for ' + variation + ' ' + prefix):
@@ -119,13 +115,13 @@ def save_nie_chart(experiments, top=True):
                 except:
                     exp.get_top()
                 if top:
-                    plt.plot(exp.top, color=cmap[color_index])
+                    plt.plot(exp.top)
                     plt.fill_between(exp.top - exp.std,
-                            exp.top + exp.std, alpha=0.15, color=cmap[color_index])
+                            exp.top + exp.std, alpha=0.15)
                 else:
                     plt.plot(exp.top_5pct)
                     plt.fill_between([i for i in range(len(exp.top))], exp.top_5pct - exp.std,
-                            exp.top_5pct + exp.std, alpha=0.15, color=cmap[color_index])
+                            exp.top_5pct + exp.std, alpha=0.15)
                 plt.ylabel('Natural Indirect Effect')
                 plt.xlabel('Layer')
             color_index += 1
@@ -133,8 +129,7 @@ def save_nie_chart(experiments, top=True):
         plt.clf()
 
 def save_ate_chart(experiments):
-    plt.figure(figsize=(4,3))
-    iso = [exp for exp in experiments]
+    iso = [exp for exp in experiments if 'random' not in exp.filename]
     iso.sort(key=lambda exp: MODELS.index(exp.model))
     titles = [exp.model for exp in iso]
     total_effects = [exp.get_total_effect() 
