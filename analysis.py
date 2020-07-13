@@ -12,137 +12,104 @@ sns.set_style('whitegrid')
 
 PATH = sys.argv[1]
 FIGURES_PATH = sys.argv[2]
-MODELS = ['Distill', 'Small', 'Medium', 'Large', 'XL']
+MODELS = ['Distil', 'Small', 'Medium', 'Large', 'XL']
+CHUNKSIZE = 100000
+EFFECT_TYPES = ['Indirect', 'Direct']
+EXAMPLE_TYPES = ['None', 'Distractor', 'Plural attractor', 
+        'Singular attractor']
 
-class experiment():
-    def __init__(self, filename):
-        self.filename = os.path.splitext(filename)[0].split('/')[-1]
-        if 'distil' in self.filename:
-            self.model = 'Distill'
-        elif 'medium' in self.filename:
-            self.model = 'Medium'
-        elif 'large' in self.filename:
-            self.model = 'Large'
-        elif 'xl' in self.filename:
-            self.model = 'XL'
+def get_size(f):
+    for m in MODELS:
+        if m.lower() in f:
+            return m
+    return 'Small'
+
+def get_example_type(f):
+    for et in EXAMPLE_TYPES:
+        if et.lower().split()[0] in f:
+            return et
+
+def load_dataframe_and_calculate_effects():
+    files = glob(PATH + '*.csv')
+    preloaded = glob(PATH + '*.feather')
+    dfs = []
+    for f in files:
+        print('Loading ' + f + '...')
+        df = None
+        feather = f.replace('csv', 'feather')
+        if feather in preloaded:
+            df = pd.read_feather(feather)
         else:
-            self.model = 'Small'
-        self.random = 'random' in self.filename
-        self.get_df()
-        self.get_effects()
-        self.save_heatmap()
+            df = pd.concat(tqdm(pd.read_csv(f, chunksize=CHUNKSIZE),
+                leave=False, desc='Loading dataframe for ' + f))
+            df.to_feather(feather)
+        df['Layer'] = df.layer
+        df['Neuron'] = df.neuron
+        df = df.set_index(['Layer','Neuron'])
+        df['Random'] = 'random' in f
+        df['Size'] = get_size(f)
+        df['Example type'] = get_example_type(f)
+        df['Effect type'] = 'Indirect' if 'indirect' in f else 'Direct'
+        df['Yz'] = df['candidate2_prob'] / df['candidate1_prob']
+        df['Y'] = df['candidate2_base_prob'] / df['candidate1_base_prob']
+        df['Effect'] = df['Yz'] / df['Y'] - 1
+        idx = df.groupby(['Layer', 'Neuron']).mean().sort_values('Effect')\
+                .groupby('Layer').tail(int(len(df)*0.05)).index
+        df['Top 5 percent'] = df.index.isin(idx)
+        dfs.append(df)
+    print('Concatentating...')
+    df = pd.concat(dfs).reset_index()
+    return df
 
-    def is_analyzed(self):
-        return (PATH + self.filename + '.txt') in glob(PATH + '*')
-    
-    def is_loaded(self):
-        return (PATH + self.filename + '.feather') in glob(PATH + '*')
+def save_nie_by_layer_plot(df):
+    print('Plotting nie by layer...')
+    for et in EFFECT_TYPES:
+        for ext in EXAMPLE_TYPES:
+            try:
+                data = df[(df['Effect type'] == et) 
+                        & (df['Example type'] == ext)] 
+                g = sns.FacetGrid(data=data,
+                        row='Random', hue='Size', 
+                        margin_titles=True, aspect=1.5)
+                g.map(sns.lineplot, 'Layer', 'Effect')
+                plt.tight_layout()
+                plt.savefig(FIGURES_PATH + '_'.join(['nie',et,ext]) + '.svg')
+                print('Success')
+            except Exception as e: 
+                print(e)
 
-    def get_df(self):
-        if not self.is_loaded():
-            CHUNKSIZE = 100000
-            df_list = [df_chunk for df_chunk 
-                    in tqdm(pd.read_csv(PATH + self.filename + '.csv', 
-                        chunksize=CHUNKSIZE), leave=False, 
-                        desc='Loading dataframe')]
-            self.df = pd.concat(df_list)
-            del df_list
-            self.df.to_feather(PATH + self.filename + '.feather')
-        else:
-            self.df = pd.read_feather(PATH + self.filename + '.feather')
-        self.number_of_layers = int(max(self.df['layer']))
-        self.neurons_per_layer = int(max(self.df['neuron']))
-        return self.df
+def draw_heatmap(data,color):
+    pivot = data.groupby(['Layer','Neuron']).mean().reset_index()\
+            .pivot(index='Layer', columns='Neuron',  values='Effect')
+    ax = sns.heatmap(pivot, cbar=False, rasterized=True)
+    ax.invert_yaxis()
 
-    def get_total_effect(self):
-        df = self.df
-        iso = df.drop_duplicates(subset=['candidate1', 'word'])
-        yx = iso['candidate2_alt1_prob'] / iso['candidate1_alt1_prob']
-        y = iso['candidate2_base_prob'] / iso['candidate1_base_prob']
-        total_effects = yx/y - 1
-        self.te = total_effects.mean()
-        return self.te
+def draw_heatmap_grid(df, et, r, ext):
+    try:
+        g = sns.FacetGrid(df, 
+                row='Size',
+                col='Example type', aspect=1.5, margin_titles=True)
+        [[ax.title.set_position([.5, 1.5]) for ax in row] for row in  g.axes]
+        g.map_dataframe(draw_heatmap)
+        plt.tight_layout()
+        plt.savefig(FIGURES_PATH + '_'.join(['heatmaps',r,et,ext]) + '.svg')
+        print('Success')
+    except Exception as e:
+        print(e)
 
-    def get_effects(self, attractor='all'):
-        if self.is_analyzed():
-            self.effects = np.loadtxt(PATH + self.filename + '.txt')
-        else:
-            df = self.df
-
-            ies = np.zeros((self.number_of_layers, self.neurons_per_layer))
-            for l in tqdm(range(self.number_of_layers), desc='Layers', 
-                    leave=False):
-                for n in tqdm(range(self.neurons_per_layer), leave=False,
-                        desc='Neurons'):
-                    iso = df[(df['layer'] == l) & (df['neuron'] == n)]
-                    yz = iso['candidate2_prob'] / iso['candidate1_prob']
-                    y = iso['candidate2_base_prob'] \
-                            / iso['candidate1_base_prob']
-                    ie = yz/y - 1
-                    ies[l][n] = ie.mean()
-            np.savetxt(PATH + self.filename + '.txt', ies)
-            self.effects = ies
-            return ies
-
-    def get_top(self):
-        self.top = np.array([max(layer) for layer in self.effects])
-        pct = len(self.effects[0]) // 20
-        top5pct = [np.partition(layer, -pct)[-pct:] for layer in self.effects]
-        self.std = np.array([np.std(layer) for layer in top5pct])
-        self.top_5pct = np.array([np.mean(np.partition(layer,-pct)[-pct:]) 
-            for layer in self.effects])
-
-    def save_heatmap(self):
-        plt.figure(dpi=1000)
-        sns.heatmap(self.effects, cmap='inferno')
-        plt.ylabel('Layer')
-        plt.xlabel('Neuron')
-        plt.savefig(FIGURES_PATH + self.filename + '.png', bbox_inches='tight')
-        plt.clf()
-
-def save_nie_chart(experiments, top=True):
-    prefix = 'top' if top else 'top5'
-    color_index = 0
-    for variation in ['plural', 'singular', 'none', 'distractor']:
-        plt.figure(figsize=(10,4))
-        for exp in tqdm(experiments, leave=False, 
-                desc='Saving NIE chart for ' + variation + ' ' + prefix):
-            if variation in exp.filename:
-                try:
-                    exp.top
-                    exp.top_5pct
-                except:
-                    exp.get_top()
-                if top:
-                    plt.plot(exp.top)
-                    plt.fill_between(exp.top - exp.std,
-                            exp.top + exp.std, alpha=0.15)
-                else:
-                    plt.plot(exp.top_5pct)
-                    plt.fill_between([i for i in range(len(exp.top))], exp.top_5pct - exp.std,
-                            exp.top_5pct + exp.std, alpha=0.15)
-                plt.ylabel('Natural Indirect Effect')
-                plt.xlabel('Layer')
-            color_index += 1
-        plt.savefig(FIGURES_PATH + '_'.join([prefix, variation, 'nie.pdf']), bbox_inches='tight')
-        plt.clf()
-
-def save_ate_chart(experiments):
-    iso = [exp for exp in experiments if 'random' not in exp.filename]
-    iso.sort(key=lambda exp: MODELS.index(exp.model))
-    titles = [exp.model for exp in iso]
-    total_effects = [exp.get_total_effect() 
-            for exp in tqdm(iso, leave=False, desc='Saving ATE chart')]
-    plt.bar(titles, total_effects)
-    plt.ylabel('Total Effect')
-    plt.xlabel('Model')
-    plt.savefig(FIGURES_PATH + 'ate.pdf', bbox_inches='tight')
-    plt.clf()
+def save_heatmaps(df):
+    print('Generating heatmaps...')
+    for et in EFFECT_TYPES:
+        for r in ['trained', 'random']:
+            for ext in EXAMPLE_TYPES:
+                f = ~df['Random'] if r == 'trained' else df['Random']
+                data = df[(df['Effect type'] == et) 
+                        & f & (df['Example type'] == ext)]
+                draw_heatmap_grid(data, et, r, ext)
 
 if __name__ == "__main__":
-    experiments = [experiment(filename) 
-        for filename in tqdm(glob(PATH + '*indirect*.csv'), leave=False, 
-            desc='Loading experiments')]
-    # save_nie_chart(experiments)
-    save_nie_chart(experiments, top=False)
-    save_ate_chart(experiments)
+    df = load_dataframe_and_calculate_effects()
+    save_nie_by_layer_plot(df)
+    save_heatmaps(df)
+
+
