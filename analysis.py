@@ -33,8 +33,7 @@ def load_dataframe_and_calculate_effects():
     files = glob(PATH + '*.csv')
     preloaded = glob(PATH + '*.feather')
     dfs = []
-    for f in files:
-        print('Loading ' + f + '...')
+    for f in tqdm(files, desc='Loading files', leave=False):
         df = None
         feather = f.replace('csv', 'feather')
         if feather in preloaded:
@@ -48,64 +47,57 @@ def load_dataframe_and_calculate_effects():
         df = df.set_index(['Layer','Neuron'])
         df['Random'] = 'random' in f
         df['Size'] = get_size(f)
-        df['Example type'] = get_example_type(f)
+        df['Example'] = get_example_type(f)
         df['Effect type'] = 'Indirect' if 'indirect' in f else 'Direct'
         df['Yz'] = df['candidate2_prob'] / df['candidate1_prob']
         df['Y'] = df['candidate2_base_prob'] / df['candidate1_base_prob']
         df['Effect'] = df['Yz'] / df['Y'] - 1
+        neurons_per_layer = len(df.groupby('Neuron').mean().index)
         idx = df.groupby(['Layer', 'Neuron']).mean().sort_values('Effect')\
-                .groupby('Layer').tail(int(len(df)*0.05)).index
+                .groupby('Layer').tail(int(neurons_per_layer*0.05)).index
         df['Top 5 percent'] = df.index.isin(idx)
         dfs.append(df)
-    print('Concatentating...')
     df = pd.concat(dfs).reset_index()
     return df
 
 def save_nie_by_layer_plot(df):
     print('Plotting nie by layer...')
-    for et in EFFECT_TYPES:
-        for ext in EXAMPLE_TYPES:
-            try:
-                data = df[(df['Effect type'] == et) 
-                        & (df['Example type'] == ext)] 
-                g = sns.FacetGrid(data=data,
-                        row='Random', hue='Size', 
-                        margin_titles=True, aspect=1.5)
-                g.map(sns.lineplot, 'Layer', 'Effect')
-                plt.tight_layout()
-                plt.savefig(FIGURES_PATH + '_'.join(['nie',et,ext]) + '.svg')
-                print('Success')
-            except Exception as e: 
-                print(e)
+    try:
+        data = df[(df['Effect type'] == 'Indirect') & df['Top 5 percent']] 
+        g = sns.FacetGrid(data=data,
+                col='Random', row='Example', hue='Size',
+                margin_titles=True, height=4, aspect=2)
+        g.map(sns.lineplot, 'Layer', 'Effect')
+        plt.tight_layout()
+        plt.savefig(FIGURES_PATH + '_'.join(['nie']) + '.svg')
+        print('Success')
+    except Exception as e: 
+        print(e)
 
 def draw_heatmap(data,color):
     pivot = data.groupby(['Layer','Neuron']).mean().reset_index()\
             .pivot(index='Layer', columns='Neuron',  values='Effect')
-    ax = sns.heatmap(pivot, cbar=False, rasterized=True)
-    ax.invert_yaxis()
-
-def draw_heatmap_grid(df, et, r, ext):
-    try:
-        g = sns.FacetGrid(df, 
-                row='Size',
-                col='Example type', aspect=1.5, margin_titles=True)
-        [[ax.title.set_position([.5, 1.5]) for ax in row] for row in  g.axes]
-        g.map_dataframe(draw_heatmap)
-        plt.tight_layout()
-        plt.savefig(FIGURES_PATH + '_'.join(['heatmaps',r,et,ext]) + '.svg')
-        print('Success')
-    except Exception as e:
-        print(e)
+    ax = sns.heatmap(pivot, rasterized=True)
+    ax.invert_yaxis()    
 
 def save_heatmaps(df):
     print('Generating heatmaps...')
     for et in EFFECT_TYPES:
         for r in ['trained', 'random']:
-            for ext in EXAMPLE_TYPES:
-                f = ~df['Random'] if r == 'trained' else df['Random']
-                data = df[(df['Effect type'] == et) 
-                        & f & (df['Example type'] == ext)]
-                draw_heatmap_grid(data, et, r, ext)
+            f = ~df['Random'] if r == 'trained' else df['Random']
+            data = df[(df['Effect type'] == et) & f]
+            try:
+                g = sns.FacetGrid(data, 
+                        col='Size',
+                        row='Example', aspect=2, 
+                        margin_titles=False,
+                        height=5)
+                g.map_dataframe(draw_heatmap)
+                plt.tight_layout()
+                plt.savefig(FIGURES_PATH + '_'.join(['heatmaps',r,et]) + '.svg')
+                print('Success')
+            except Exception as e:
+                print(e)
 
 if __name__ == "__main__":
     df = load_dataframe_and_calculate_effects()
