@@ -17,6 +17,7 @@ CHUNKSIZE = 100000
 EFFECT_TYPES = ['Indirect', 'Direct']
 EXAMPLE_TYPES = ['None', 'Distractor', 'Plural attractor', 
         'Singular attractor']
+COLS = ['Layer','Neuron','Random','Size','Example','Effect type']
 
 def get_size(f):
     for m in MODELS:
@@ -41,23 +42,28 @@ def load_dataframe_and_calculate_effects():
         else:
             df = pd.concat(tqdm(pd.read_csv(f, chunksize=CHUNKSIZE),
                 leave=False, desc='Loading dataframe for ' + f))
+            df['Layer'] = df.layer
+            df['Neuron'] = df.neuron
+            df['Random'] = 'random' in f
+            df['Size'] = get_size(f)
+            df['Example'] = get_example_type(f)
+            df['Effect type'] = 'Indirect' if 'indirect' in f else 'Direct'
+            df['Yz'] = df['candidate2_prob'] / df['candidate1_prob']
+            df['Y'] = df['candidate2_base_prob'] / df['candidate1_base_prob']
+            df['Effect'] = df['Yz'] / df['Y'] - 1
+            df = df.groupby(COLS)\
+                    .mean()\
+                    .reset_index()\
+                    .set_index(COLS)
+            neurons_per_layer = len(df.groupby('Neuron').mean().index)
+            idx = df.groupby(COLS).mean().sort_values('Effect')\
+                    .groupby([col for col in COLS if col != 'Neuron'])\
+                    .tail(int(neurons_per_layer*0.05)).index
+            df['Top 5 percent'] = df.index.isin(idx)
+            df = df.reset_index()
             df.to_feather(feather)
-        df['Layer'] = df.layer
-        df['Neuron'] = df.neuron
-        df = df.set_index(['Layer','Neuron'])
-        df['Random'] = 'random' in f
-        df['Size'] = get_size(f)
-        df['Example'] = get_example_type(f)
-        df['Effect type'] = 'Indirect' if 'indirect' in f else 'Direct'
-        df['Yz'] = df['candidate2_prob'] / df['candidate1_prob']
-        df['Y'] = df['candidate2_base_prob'] / df['candidate1_base_prob']
-        df['Effect'] = df['Yz'] / df['Y'] - 1
-        neurons_per_layer = len(df.groupby('Neuron').mean().index)
-        idx = df.groupby(['Layer', 'Neuron']).mean().sort_values('Effect')\
-                .groupby('Layer').tail(int(neurons_per_layer*0.05)).index
-        df['Top 5 percent'] = df.index.isin(idx)
         dfs.append(df)
-    df = pd.concat(dfs).reset_index()
+    df = pd.concat(dfs)
     return df
 
 def save_nie_by_layer_plot(df):
@@ -65,15 +71,14 @@ def save_nie_by_layer_plot(df):
     try:
         data = df[(df['Effect type'] == 'Indirect') & df['Top 5 percent']] 
         g = sns.FacetGrid(data=data,
-                col='Random', row='Example', hue='Size',
-                col_order=[False,True], 
-                row_order=EXAMPLE_TYPES, 
-                hue_order=MODELS,
-                margin_titles=True, 
-                height=4, 
-                aspect=2, 
-                sharey=False)
-        g.map(sns.lineplot, 'Layer', 'Effect')
+                col='Random', col_order=[False,True], 
+                row='Example', row_order=EXAMPLE_TYPES, 
+                hue='Size', hue_order=MODELS,
+                # margin_titles=True, 
+                height=4, aspect=2, 
+                sharey=False)\
+                        .map(sns.lineplot, 'Layer', 'Effect')
+        [ax.legend() for ax in g.axes.flatten()]
         plt.tight_layout()
         plt.savefig(FIGURES_PATH + '_'.join(['nie']) + '.svg')
         print('Success')
@@ -93,17 +98,17 @@ def save_heatmaps(df):
             f = ~df['Random'] if r == 'trained' else df['Random']
             data = df[(df['Effect type'] == et) & f]
             try:
-                g = sns.FacetGrid(data, 
-                        col='Size',
-                        col_order=MODELS,
-                        row='Example', 
-                        row_order=EXAMPLE_TYPES,
+                sns.FacetGrid(data, 
+                        col='Size', col_order=MODELS,
+                        row='Example', row_order=EXAMPLE_TYPES,
                         margin_titles=False,
-                        aspect=2, 
-                        height=5, sharey=False, sharex=False)
-                g.map_dataframe(draw_heatmap)
+                        aspect=2, height=5, 
+                        sharey=False, sharex=False)\
+                                .map_dataframe(draw_heatmap)
                 plt.tight_layout()
-                plt.savefig(FIGURES_PATH + '_'.join(['heatmaps',r,et]) + '.svg')
+                plt.savefig(FIGURES_PATH 
+                        + '_'.join(['heatmaps',r,et]).lower().replace(' ','_') 
+                        + '.svg')
                 print('Success')
             except Exception as e:
                 print(e)
