@@ -66,7 +66,13 @@ def save_nie_by_layer_plot(df):
         data = df[(df['Effect type'] == 'Indirect') & df['Top 5 percent']] 
         g = sns.FacetGrid(data=data,
                 col='Random', row='Example', hue='Size',
-                margin_titles=True, height=4, aspect=2)
+                col_order=[False,True], 
+                row_order=EXAMPLE_TYPES, 
+                hue_order=MODELS,
+                margin_titles=True, 
+                height=4, 
+                aspect=2, 
+                sharey=False)
         g.map(sns.lineplot, 'Layer', 'Effect')
         plt.tight_layout()
         plt.savefig(FIGURES_PATH + '_'.join(['nie']) + '.svg')
@@ -89,9 +95,12 @@ def save_heatmaps(df):
             try:
                 g = sns.FacetGrid(data, 
                         col='Size',
-                        row='Example', aspect=2, 
+                        col_order=MODELS,
+                        row='Example', 
+                        row_order=EXAMPLE_TYPES,
                         margin_titles=False,
-                        height=5)
+                        aspect=2, 
+                        height=5, sharey=False, sharex=False)
                 g.map_dataframe(draw_heatmap)
                 plt.tight_layout()
                 plt.savefig(FIGURES_PATH + '_'.join(['heatmaps',r,et]) + '.svg')
