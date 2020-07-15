@@ -7,8 +7,9 @@ import matplotlib.pyplot as plt
 import sys
 import seaborn as sns
 
-sns.set_context('talk')
-sns.set_style('whitegrid')
+#sns.set_context('talk')
+#sns.set_style('whitegrid')
+sns.set()
 
 PATH = sys.argv[1]
 FIGURES_PATH = sys.argv[2]
