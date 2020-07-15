@@ -1,7 +1,7 @@
 # Byte-compiled / optimized / DLL files
 .DS_Store
 *.csv
-*.feather
+# *.feather
 *.err
 *.out
 results/na_neuron_intervention/*.txt
