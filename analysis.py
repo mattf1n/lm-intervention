@@ -9,7 +9,6 @@ import seaborn as sns
 
 sns.set_context('talk')
 sns.set_style('whitegrid')
-# sns.set()
 
 PATH = sys.argv[1]
 FIGURES_PATH = sys.argv[2]
@@ -72,12 +71,13 @@ def load_dataframe_and_calculate_effects(by_feather=False):
 def save_nie_by_layer_plot(df):
     print('Plotting nie by layer...')
     try:
-        data = df[(df['Effect type'] == 'Indirect') & df['Top 5 percent']] 
+        data = df[(df['Effect type'] == 'Indirect') & df['Top 5 percent']]\
+                .groupby(COLS).mean().reset_index()
         g = sns.FacetGrid(data=data,
                 col='Random', col_order=[False, True], 
                 row='Intervening tokens', row_order=EXAMPLE_TYPES, 
                 hue='Model size', hue_order=MODELS,
-                height=4, aspect=2, 
+                height=5, aspect=2, 
                 sharey=False)\
                         .map(sns.lineplot, 'Layer', 'Effect')
         [ax.legend() for ax in g.axes.flatten()]
@@ -129,7 +129,7 @@ def save_aggregate_total_effect_bar(df):
     print(data)
     sns.FacetGrid(data, 
             row='Intervening tokens', row_order=EXAMPLE_TYPES,
-            height=5,
+            height=5, aspect=2,
             sharey=False, sharex=False)\
                     .map(sns.barplot, 'Model size', 'Total effect', 
                             orient='v', order=MODELS)
