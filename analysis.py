@@ -134,7 +134,7 @@ def save_aggregate_total_effect_bar(df):
             sharey=True, sharex=False)\
                     .map(sns.barplot, 'Model size', 'Total effect', 
                             orient='v', order=MODELS)\
-                    .set(xscale='log', yscale='log')
+                    .set(yscale='log')
     title = 'Total effects'
     plt.suptitle(title)
     plt.tight_layout(rect=[0, 0, 1, 0.95])
@@ -147,8 +147,7 @@ def save_y_comparisons(df):
             .mean().reset_index()
     sns.relplot(x='Singular grammaticality', y='Plural grammaticality',
             hue='Intervening tokens', style='Model size', 
-            data=data)\
-                    .set(xscale='log', yscale='log')
+            data=data)
     title = 'Model grammaticality'
     plt.suptitle(title)
     plt.tight_layout(rect=[0, 0, 1, 0.95])
