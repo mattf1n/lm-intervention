@@ -55,8 +55,11 @@ def load_dataframe_and_calculate_effects(by_feather=False):
             df['Intervening tokens'] = get_example_type(f)
             df['Effect type'] = 'Indirect' if 'indirect' in f else 'Direct'
             df['Yz'] = df['candidate2_prob'] / df['candidate1_prob']
-            df['Y'] = df['candidate2_base_prob'] / df['candidate1_base_prob']
-            df['Effect'] = df['Yz'] / df['Y'] - 1
+            df['Singular grammaticality'] = df['candidate2_base_prob'] / df['candidate1_base_prob']
+            df['Effect'] = df['Yz'] / df['Singular grammaticality'] - 1
+            df['Plural grammaticality'] = df.candidate2_alt1_prob / df.candidate1_alt1_prob
+            df['Total effect'] = df['Plural grammaticality'] / df['Singular grammaticality'] \
+                    - 1
             neurons = ['Neuron', 'Layer']
             df = df.set_index(neurons)
             neurons_per_layer = len(df.groupby('Neuron').mean().index)
@@ -120,23 +123,36 @@ def save_heatmaps(df):
                 print(e)
 
 def save_aggregate_total_effect_bar(df):
-    df['Yp'] = df.candidate2_alt1_prob / df.candidate1_alt1_prob
-    df['Total effect'] = df.Yp / df.Y - 1
     data = df[~df.Random & (df['Effect type'] == 'Indirect')]\
             .groupby([c for c in COLS if c not in ['Layer', 'Neuron']]
                     + ['base_string', 'candidate1'])\
             .mean().reset_index()
-    print(data)
+    # TODO hue='Intervening tokens', y = log10 
     sns.FacetGrid(data, 
             row='Intervening tokens', row_order=EXAMPLE_TYPES,
             height=5, aspect=2,
-            sharey=False, sharex=False)\
+            sharey=True, sharex=False)\
                     .map(sns.barplot, 'Model size', 'Total effect', 
                             orient='v', order=MODELS)
     title = 'Total effects'
     plt.suptitle(title)
     plt.tight_layout(rect=[0, 0, 1, 0.95])
     plt.savefig(FIGURES_PATH + f'{title.lower().replace(" ", "_")}.svg')
+
+def save_y_comparisons(df):
+    data = df[~df.Random & (df['Effect type'] == 'Indirect')]\
+            .groupby([c for c in COLS if c not in ['Layer', 'Neuron']]
+                    + ['base_string', 'candidate1'])\
+                            .mean().reset_index()
+    sns.relplot(x='Singular grammaticality', y='Plural grammaticality',
+            hue='Intervening tokens', style='Model size', 
+            data=data)\
+                    .set(xscale='log', yscale='log')
+    title = 'Model grammaticality'
+    plt.suptitle(title)
+    plt.tight_layout(rect=[0, 0, 1, 0.95])
+    plt.savefig(FIGURES_PATH + f'{title.lower().replace(" ", "_")}.svg')
+
 
 if __name__ == "__main__":
     df = load_dataframe_and_calculate_effects(by_feather=by_feather)
