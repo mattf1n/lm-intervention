@@ -20,6 +20,7 @@ EXAMPLE_TYPES = ['None', 'Distractor', 'Plural attractor',
         'Singular attractor']
 COLS = ['Layer', 'Neuron', 'Random', 'Model size', 'Intervening tokens', 
         'Effect type']
+FORMAT = '.pdf'
 
 def get_size(f):
     for m in MODELS:
@@ -87,7 +88,7 @@ def save_nie_by_layer_plot(df):
         title = f'Indirect effects of top 5 percent of neurons by layer'
         plt.gcf().suptitle(title)
         plt.tight_layout(rect=[0, 0, 1, 0.95])
-        plt.savefig(FIGURES_PATH + title.lower().replace(' ', '_') + '.svg')
+        plt.savefig(FIGURES_PATH + title.lower().replace(' ', '_') + FORMAT)
         print('Success')
     except Exception as e: 
         print(e)
@@ -117,7 +118,7 @@ def save_heatmaps(df):
                 plt.tight_layout(rect=[0, 0, 1, 0.95])
                 plt.savefig(FIGURES_PATH 
                         + title.lower().replace(' ', '_') 
-                        + '.svg')
+                        + FORMAT)
                 print('Success')
             except Exception as e:
                 print(e)
@@ -132,11 +133,12 @@ def save_aggregate_total_effect_bar(df):
             height=5, aspect=2,
             sharey=True, sharex=False)\
                     .map(sns.barplot, 'Model size', 'Total effect', 
-                            orient='v', order=MODELS)
+                            orient='v', order=MODELS)\
+                    .set(xscale='log', yscale='log')
     title = 'Total effects'
     plt.suptitle(title)
     plt.tight_layout(rect=[0, 0, 1, 0.95])
-    plt.savefig(FIGURES_PATH + f'{title.lower().replace(" ", "_")}.svg')
+    plt.savefig(FIGURES_PATH + f'{title.lower().replace(" ", "_")}' + FORMAT)
 
 def save_y_comparisons(df):
     data = df[~df.Random & (df['Effect type'] == 'Indirect')]\
@@ -150,7 +152,7 @@ def save_y_comparisons(df):
     title = 'Model grammaticality'
     plt.suptitle(title)
     plt.tight_layout(rect=[0, 0, 1, 0.95])
-    plt.savefig(FIGURES_PATH + f'{title.lower().replace(" ", "_")}.svg')
+    plt.savefig(FIGURES_PATH + f'{title.lower().replace(" ", "_")}' + FORMAT)
 
 
 if __name__ == "__main__":
