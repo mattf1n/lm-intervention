@@ -127,7 +127,6 @@ def save_aggregate_total_effect_bar(df):
             .groupby([c for c in COLS if c not in ['Layer', 'Neuron']]
                     + ['base_string', 'candidate1'])\
             .mean().reset_index()
-    # TODO hue='Intervening tokens', y = log10 
     sns.FacetGrid(data, 
             row='Intervening tokens', row_order=EXAMPLE_TYPES,
             height=5, aspect=2,
@@ -143,7 +142,7 @@ def save_y_comparisons(df):
     data = df[~df.Random & (df['Effect type'] == 'Indirect')]\
             .groupby([c for c in COLS if c not in ['Layer', 'Neuron']]
                     + ['base_string', 'candidate1'])\
-                            .mean().reset_index()
+            .mean().reset_index()
     sns.relplot(x='Singular grammaticality', y='Plural grammaticality',
             hue='Intervening tokens', style='Model size', 
             data=data)\
@@ -159,4 +158,5 @@ if __name__ == "__main__":
     save_nie_by_layer_plot(df)
     save_heatmaps(df)
     save_aggregate_total_effect_bar(df)
+    save_y_comparisons(df)
 
