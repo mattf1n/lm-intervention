@@ -130,7 +130,7 @@ def save_aggregate_total_effect_bar(df):
     sns.FacetGrid(data, 
             row='Intervening tokens', row_order=EXAMPLE_TYPES,
             height=5, aspect=2,
-            sharey=False, sharex=False)\
+            sharey=True, sharex=False)\
                     .map(sns.barplot, 'Model size', 'Total effect', 
                             orient='v', order=MODELS)
     title = 'Total effects'
