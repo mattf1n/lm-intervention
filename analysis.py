@@ -142,8 +142,7 @@ def save_aggregate_total_effect_bar(df):
 
 def save_y_comparisons(df):
     data = df[~df.Random & (df['Effect type'] == 'Indirect')]\
-            .groupby([c for c in COLS if c not in ['Layer', 'Neuron']]
-                    + ['base_string', 'candidate1'])\
+            .groupby(['Model size', 'Intervening tokens'])\
             .mean().reset_index()
     sns.relplot(x='Singular grammaticality', y='Plural grammaticality',
             hue='Intervening tokens', style='Model size', 
