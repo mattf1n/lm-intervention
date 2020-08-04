@@ -58,8 +58,10 @@ def load_dataframe_and_calculate_effects(by_feather=False):
             df['Yz'] = df['candidate2_prob'] / df['candidate1_prob']
             df['Singular grammaticality'] = df['candidate2_base_prob'] / df['candidate1_base_prob']
             df['Effect'] = df['Yz'] / df['Singular grammaticality'] - 1
-            df['Plural grammaticality'] = df.candidate2_alt1_prob / df.candidate1_alt1_prob
-            df['Total effect'] = df['Plural grammaticality'] / df['Singular grammaticality'] \
+            df['Plural grammaticality'] = df.candidate1_alt1_prob / df.candidate2_alt1_prob
+            df['Total effect'] = 1 \
+                    / (df['Plural grammaticality'] 
+                            * df['Singular grammaticality']) \
                     - 1
             neurons = ['Neuron', 'Layer']
             df = df.set_index(neurons)
@@ -145,7 +147,8 @@ def save_y_comparisons(df):
             .groupby(['Model size', 'Intervening tokens'])\
             .mean().reset_index()
     sns.relplot(x='Singular grammaticality', y='Plural grammaticality',
-            hue='Intervening tokens', style='Model size', 
+            hue='Intervening tokens', 
+            size='Model size', size_order=MODELS,
             data=data)
     title = 'Model grammaticality'
     plt.suptitle(title)
