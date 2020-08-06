@@ -151,10 +151,10 @@ def save_y_comparisons(df):
     sns.relplot(x='Singular grammaticality', y='Plural grammaticality',
             hue='Intervening tokens', 
             size='Model size', size_order=MODELS,
-            data=data)._legend.set_bbox_to_anchor([1,0.7])
+            data=data)
     title = 'Model grammaticality'
     plt.suptitle(title)
-    plt.tight_layout(rect=[0, 0, 1, 0.95])
+    plt.tight_layout(rect=[0, 0, 0.70, 0.95])
     plt.savefig(FIGURES_PATH + f'{title.lower().replace(" ", "_")}' + FORMAT)
 
 
