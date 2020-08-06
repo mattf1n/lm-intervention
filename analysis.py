@@ -55,10 +55,12 @@ def load_dataframe_and_calculate_effects(by_feather=False):
             df['Model size'] = get_size(f)
             df['Intervening tokens'] = get_example_type(f)
             df['Effect type'] = 'Indirect' if 'indirect' in f else 'Direct'
-            df['Yz'] = df['candidate2_prob'] / df['candidate1_prob']
-            df['Singular grammaticality'] = df['candidate2_base_prob'] / df['candidate1_base_prob']
+            df['Yz'] = df.candidate2_prob / df.candidate1_prob
+            df['Singular grammaticality'] = df.candidate2_base_prob \
+                    / df.candidate1_base_prob
             df['Effect'] = df['Yz'] / df['Singular grammaticality'] - 1
-            df['Plural grammaticality'] = df.candidate1_alt1_prob / df.candidate2_alt1_prob
+            df['Plural grammaticality'] = df.candidate1_alt1_prob \
+                    / df.candidate2_alt1_prob
             df['Total effect'] = 1 \
                     / (df['Plural grammaticality'] 
                             * df['Singular grammaticality']) \
@@ -149,7 +151,7 @@ def save_y_comparisons(df):
     sns.relplot(x='Singular grammaticality', y='Plural grammaticality',
             hue='Intervening tokens', 
             size='Model size', size_order=MODELS,
-            data=data)
+            data=data)._legend.set_bbox_to_anchor([1,0.7])
     title = 'Model grammaticality'
     plt.suptitle(title)
     plt.tight_layout(rect=[0, 0, 1, 0.95])
