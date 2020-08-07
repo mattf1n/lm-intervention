@@ -149,12 +149,12 @@ def save_y_comparisons(df):
             .groupby(['Model size', 'Intervening tokens'])\
             .mean().reset_index()
     sns.relplot(x='Singular grammaticality', y='Plural grammaticality',
-            hue='Intervening tokens', 
+            hue='Intervening tokens', hue_order=EXAMPLE_TYPES, 
             size='Model size', size_order=MODELS,
             data=data)
     title = 'Model grammaticality'
     plt.suptitle(title)
-    plt.tight_layout(rect=[0, 0, 0.70, 0.95])
+    plt.tight_layout(rect=[0, 0, 0.60, 0.95])
     plt.savefig(FIGURES_PATH + f'{title.lower().replace(" ", "_")}' + FORMAT)
 
 
