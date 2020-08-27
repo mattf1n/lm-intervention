@@ -23,6 +23,8 @@ def get_example_type(f):
 
 def compute_effects_and_save():
     files = glob(PATH + '*.csv')
+    print(PATH)
+    print(files)
     preloaded = glob(PATH + '*.feather')
     for f in tqdm(files, desc='Loading files', leave=False):
         df = None
