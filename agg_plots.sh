@@ -8,4 +8,6 @@
 #SBATCH -e myerrors_%j.err  # File to which STDERR will be written, %j inserts jobid
 module load Anaconda3/2019.10
 source activate myenv
-python analysis.py results/na_neuron_intervention/ figures/ 
+python natural_indirect_effect_by_layer_plot.py results/na_neuron_intervention/ figures/ 
+python heatmaps.py results/na_neuron_intervention/ figures/ 
+python y_comparison_plot.py results/na_neuron_intervention/ figures/ 
