@@ -24,6 +24,8 @@ def get_example_type(f):
 def compute_effects_and_save():
     files = glob(PATH + '*.csv')
     preloaded = glob(PATH + '*.feather')
+    effects_dfs = []
+    agg_dfs = []
     for f in tqdm(files, desc='Loading files', leave=False):
         df = None
         feather = f.replace('csv', 'feather')
@@ -56,11 +58,12 @@ def compute_effects_and_save():
                 .groupby('Layer')\
                 .tail(int(neurons_per_layer*0.05)).index
         df['Top 5 percent'] = df.index.isin(idx)
-        with_effects = os.path.splitext(f)[0] + '_with_effects.feather'
-        df.to_feather(with_effects)
-        aggregate = os.path.split(f)[0] + '_agg.feather'
-        df.to_feather(aggregate)
-        dfs.append(df)
+        effects_dfs.append(df)
+        agg_dfs.append(df.groupby(neurons).mean())
+    pd.concatenate(effects_dfs).reset_index()\
+            .to_feather('effects.feather')
+    pd.concatenate(agg_dfs).reset_index().to_feather('agg.feather')
+    
 
 if __name__ == "__main__":
     compute_effects_and_save()
