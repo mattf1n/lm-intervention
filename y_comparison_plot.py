@@ -24,13 +24,13 @@ def save_y_comparisons():
     data0['Grammaticality type'] = 'Plural'
     data1['Grammaticality type'] = 'Singular'
     data = pd.concat([data0, data1])
-    sns.catplot(x='Grammaticality', y='Intervening tokens',
+    sns.catplot(y='Grammaticality', x='Intervening tokens',
             col='Grammaticality type', 
             hue='Model size', hue_order=reversed(MODELS),
-            data=data, sharex=True, kind='point', dodge=True)
+            data=data, sharey=True, kind='point', dodge=True).set(yscale='log')
     title = 'Model grammaticality'
     plt.suptitle(title)
-    plt.tight_layout(rect=[0, 0, 0, 0.95])
+    plt.tight_layout(rect=[0, 0, 0.95, 0.90])
     plt.savefig(FIGURES_PATH + f'{title.lower().replace(" ", "_")}' + FORMAT)
     # plt.show()
 
