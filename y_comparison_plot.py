@@ -15,7 +15,8 @@ FORMAT = '.pdf'
 def save_y_comparisons():
     df = pd.read_feather(PATH + 'effects.feather')
     data0 = df[~df.Random & (df['Effect type'] == 'Indirect')]\
-            .groupby(['Model size', 'Intervening tokens'])\
+            .groupby(['Model size', 'Intervening tokens', 'base_string', 
+                'candidate1'])\
             .mean().reset_index()
     data1 = data0.copy()
     data0['Grammaticality'] = data0['Plural grammaticality']
