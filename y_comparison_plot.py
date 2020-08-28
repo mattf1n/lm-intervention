@@ -27,10 +27,10 @@ def save_y_comparisons():
     sns.catplot(x='Grammaticality', y='Intervening tokens',
             col='Grammaticality type', 
             hue='Model size', hue_order=reversed(MODELS),
-            data=data, sharex=True, kind='box')
+            data=data, sharex=True, kind='point', dodge=True)
     title = 'Model grammaticality'
     plt.suptitle(title)
-    plt.tight_layout(rect=[0, 0, 0.75, 0.95])
+    plt.tight_layout(rect=[0, 0, 0, 0.95])
     plt.savefig(FIGURES_PATH + f'{title.lower().replace(" ", "_")}' + FORMAT)
     # plt.show()
 
