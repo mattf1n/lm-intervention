@@ -27,27 +27,12 @@ def save_y_comparisons():
     sns.catplot(x='Grammaticality', y='Intervening tokens',
             col='Grammaticality type', 
             hue='Model size', hue_order=reversed(MODELS),
-            data=data, sharex=True)
+            data=data, sharex=True, kind='box')
     title = 'Model grammaticality'
     plt.suptitle(title)
     plt.tight_layout(rect=[0, 0, 0.75, 0.95])
     plt.savefig(FIGURES_PATH + f'{title.lower().replace(" ", "_")}' + FORMAT)
     # plt.show()
-
-# def save_y_comparisons():
-    # df = pd.read_feather(PATH + 'agg.feather')
-    # data = df[~df.Random & (df['Effect type'] == 'Indirect')]\
-            # .groupby(['Model size', 'Intervening tokens'])\
-            # .mean().reset_index()
-    # sns.relplot(x='Singular grammaticality', y='Plural grammaticality',
-            # hue='Intervening tokens', hue_order=EXAMPLE_TYPES,
-            # size='Model size', size_order=reversed(MODELS),
-            # data=data).set(xlim=(0,0.6), ylim=(0,0.6))
-    # title = 'Model grammaticality'
-    # plt.suptitle(title)
-    # plt.tight_layout(rect=[0, 0, 0.75, 0.95])
-    # plt.savefig(FIGURES_PATH + f'{title.lower().replace(" ", "_")}' + FORMAT)
-    # # plt.show()
 
 if __name__ == "__main__":
     save_y_comparisons()
