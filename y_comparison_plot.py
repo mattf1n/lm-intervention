@@ -27,7 +27,7 @@ def save_y_comparisons():
     sns.catplot(y='Grammaticality', x='Intervening tokens',
             col='Agreement', 
             hue='Model size', hue_order=reversed(MODELS),
-            data=data, sharey=True, kind='point', dodge=True, aspect=1.5)
+            data=data, sharey=True, kind='point', dodge=True, aspect=1.5)\
                 .set(yscale='log')
     title = 'Model grammaticality'
     plt.suptitle(title)
