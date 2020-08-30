@@ -9,8 +9,6 @@ MODELS = ['Distil', 'Small', 'Medium', 'Large', 'XL']
 CHUNKSIZE = 100000
 EXAMPLE_TYPES = ['None', 'Distractor', 'Plural attractor', 
         'Singular attractor']
-COLS = ['Layer', 'Neuron', 'Random', 'Model size', 'Intervening tokens', 
-        'Effect type']
 
 def get_size(f):
     for m in MODELS:
@@ -63,7 +61,7 @@ def compute_effects_and_save():
                 .tail(int(neurons_per_layer*0.05)).index
         df['Top 5 percent'] = df.index.isin(idx)
         effects_dfs.append(df)
-        agg_dfs.append(df.groupby(COLS).mean())
+        agg_dfs.append(df.groupby(neurons).mean())
     pd.concat(effects_dfs).reset_index()\
             .to_feather(PATH + 'effects.feather')
     pd.concat(agg_dfs).reset_index().to_feather(PATH + 'agg.feather')
