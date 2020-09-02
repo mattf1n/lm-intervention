@@ -38,10 +38,6 @@ def compute_effects_and_save():
         df['Layer'] = df.layer
         df['Neuron'] = df.neuron
         df = df.set_index(['Neuron', 'Layer'])
-        df['Random'] = 'random' in f
-        df['Model size'] = get_size(f)
-        df['Intervening tokens'] = get_example_type(f)
-        df['Effect type'] = 'Indirect' if 'indirect' in f else 'Direct'
 
         # Aggregated calculated values
         agg = df.groupby(['Neuron', 'Layer']).mean()
@@ -57,6 +53,10 @@ def compute_effects_and_save():
         idx = agg.sort_values('Effect').groupby('Layer')\
                 .tail(int(neurons_per_layer*0.05)).index
         agg['Top 5 percent'] = agg.index.isin(idx)
+        agg['Random'] = 'random' in f
+        agg['Model size'] = get_size(f)
+        agg['Intervening tokens'] = get_example_type(f)
+        agg['Effect type'] = 'Indirect' if 'indirect' in f else 'Direct'
         agg_dfs.append(agg)
 
         # Unaggregated calculated values
@@ -68,6 +68,10 @@ def compute_effects_and_save():
                 / df.candidate2_alt1_prob
         df['Total effect'] = 1 / (df['Plural grammaticality'] 
                 * df['Singular grammaticality']) - 1
+        df['Random'] = 'random' in f
+        df['Model size'] = get_size(f)
+        df['Intervening tokens'] = get_example_type(f)
+        df['Effect type'] = 'Indirect' if 'indirect' in f else 'Direct'
         effects_dfs.append(df)
 
     pd.concat(effects_dfs).reset_index().to_feather(PATH + 'effects.feather')
