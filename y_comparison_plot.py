@@ -31,8 +31,7 @@ def save_y_comparisons():
     sns.catplot(y='Grammaticality', x='Intervening tokens',
             col='Agreement', 
             hue='Model size', hue_order=reversed(MODELS),
-            data=data, sharey=True, kind='point', dodge=True, aspect=1.5)\
-                    .set(yscale='log')
+            data=data, sharey=True, kind='point', dodge=True, aspect=1.5)
     title = 'Model grammaticality'
     plt.suptitle(title)
     plt.tight_layout(rect=[0, 0, 0.925, 0.90])
