@@ -36,7 +36,16 @@ def save_y_comparisons():
     plt.suptitle(title)
     plt.tight_layout(rect=[0, 0, 0.925, 0.90])
     plt.savefig(FIGURES_PATH + f'{title.lower().replace(" ", "_")}' + FORMAT)
-    # plt.show()
+    plt.clf()
+    sns.catplot(y='Grammaticality', x='Intervening tokens',
+            col='Agreement', 
+            hue='Model size', hue_order=reversed(MODELS),
+            data=data, sharey=True, kind='point', dodge=True, aspect=1.5)\
+                    .set(yscale='log')
+    title = 'Model grammaticality log scale'
+    plt.suptitle(title)
+    plt.tight_layout(rect=[0, 0, 0.925, 0.90])
+    plt.savefig(FIGURES_PATH + f'{title.lower().replace(" ", "_")}' + FORMAT)
 
 if __name__ == "__main__":
     save_y_comparisons()
