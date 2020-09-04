@@ -39,16 +39,18 @@ def compute_effects_and_save():
         df['Neuron'] = df.neuron
         df = df.set_index(['Neuron', 'Layer'])
 
-        # Aggregated calculated values
+        # Compute effects/measures
+        df['Yz'] = df.candidate2_prob / df.candidate1_prob
+        df['Singular grammaticality'] = df.candidate2_base_prob \
+                / df.candidate1_base_prob
+        df['Effect'] = df['Yz'] / df['Singular grammaticality'] - 1
+        df['Plural grammaticality'] = df.candidate1_alt1_prob \
+                / df.candidate2_alt1_prob
+        df['Total effect'] = 1 / (df['Plural grammaticality'] 
+                * df['Singular grammaticality']) - 1
+
+        # Averaged over examples
         agg = df.groupby(['Neuron', 'Layer']).mean()
-        agg['Yz'] = agg.candidate2_prob / agg.candidate1_prob
-        agg['Singular grammaticality'] = agg.candidate2_base_prob \
-                / agg.candidate1_base_prob
-        agg['Plural grammaticality'] = agg.candidate1_alt1_prob \
-                / agg.candidate2_alt1_prob
-        agg['Effect'] = agg['Yz'] / agg['Singular grammaticality'] - 1
-        agg['Total effect'] = 1 / (agg['Plural grammaticality'] 
-                * agg['Singular grammaticality']) - 1 
         neurons_per_layer, _ = agg.index.max()
         idx = agg.sort_values('Effect').groupby('Layer')\
                 .tail(int(neurons_per_layer*0.05)).index
@@ -59,15 +61,7 @@ def compute_effects_and_save():
         agg['Effect type'] = 'Indirect' if 'indirect' in f else 'Direct'
         agg_dfs.append(agg)
 
-        # Unaggregated calculated values
-        df['Yz'] = df.candidate2_prob / df.candidate1_prob
-        df['Singular grammaticality'] = df.candidate2_base_prob \
-                / df.candidate1_base_prob
-        df['Effect'] = df['Yz'] / df['Singular grammaticality'] - 1
-        df['Plural grammaticality'] = df.candidate1_alt1_prob \
-                / df.candidate2_alt1_prob
-        df['Total effect'] = 1 / (df['Plural grammaticality'] 
-                * df['Singular grammaticality']) - 1
+        # Not averaged 
         df['Random'] = 'random' in f
         df['Model size'] = get_size(f)
         df['Intervening tokens'] = get_example_type(f)
