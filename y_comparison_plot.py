@@ -18,6 +18,8 @@ gb = ['Model size', 'Intervening tokens'] if AGG \
 
 def save_y_comparisons():
     df = pd.read_feather(PATH)
+    df.drop(columns=['candidate1_alt1_prob', 'candidate2_alt1_prob', 
+        'candidate1_base_prob', 'candidate2_base_prob'])
     data = df[~df.Random & (df['Effect type'] == 'Indirect') 
             & (df['Layer'] == 0) & (df['Neuron'] == 0)]\
                     .groupby(gb)\
@@ -27,7 +29,6 @@ def save_y_comparisons():
                             value_vars=['Singular grammaticality', 
                                 'Plural grammaticality'],
                             var_name='Type', value_name='Grammaticality')
-    print(data)
     data['Agreement'] = data.Type.str.split().str.get(0)
     data['Grammaticality'] = 1 / data['Grammaticality']
 
@@ -37,6 +38,8 @@ def save_y_comparisons():
             hue='Model size', hue_order=reversed(MODELS),
             data=data, sharey=True, kind='point', dodge=True, aspect=1.5)
     title = 'Model grammaticality'
+    if AGG:
+        title += ' (aggregated)'
     plt.suptitle(title)
     plt.tight_layout(rect=[0, 0, 0.925, 0.90])
     plt.savefig(FIGURES_PATH + f'{title.lower().replace(" ", "_")}' + FORMAT)
@@ -47,6 +50,8 @@ def save_y_comparisons():
             data=data, sharey=True, kind='point', dodge=True, aspect=1.5)\
                     .set(yscale='log')
     title = 'Model grammaticality (log scale)'
+    if AGG:
+        title += ' (aggregated)'
     plt.suptitle(title)
     plt.tight_layout(rect=[0, 0, 0.925, 0.90])
     plt.savefig(FIGURES_PATH + f'{title.lower().replace(" ", "_")}' + FORMAT)
@@ -58,6 +63,8 @@ def save_y_comparisons():
             data=data,
             sharey=True, kind='bar')
     title = 'Model grammaticality (box)'
+    if AGG:
+        title += ' (aggregated)'
     plt.suptitle(title)
     plt.tight_layout(rect=[0, 0, 0.85, 0.975])
     plt.savefig(FIGURES_PATH + f'{title.lower().replace(" ", "_")}' + FORMAT)
@@ -68,6 +75,8 @@ def save_y_comparisons():
             data=data,
             sharey=True, kind='bar').set(yscale='log')
     title = 'Model grammaticality (box with log scale)'
+    if AGG:
+        title += ' (aggregated)'
     plt.suptitle(title)
     plt.tight_layout(rect=[0, 0, 0.85, 0.975])
     plt.savefig(FIGURES_PATH + f'{title.lower().replace(" ", "_")}' + FORMAT)
