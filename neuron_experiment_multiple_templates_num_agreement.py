@@ -7,7 +7,8 @@ import random
 from utils_num_agreement import convert_results_to_pd
 from experiment_num_agreement import Intervention, Model
 from transformers import GPT2Tokenizer
-from vocab_utils import get_nouns, get_verbs, get_prepositions, get_preposition_nouns, get_adv1s, get_adv2s
+from vocab_utils import get_nouns, get_nouns2, get_verbs, get_verbs2, get_prepositions, \
+        get_preposition_nouns, get_adv1s, get_adv2s
 import vocab_utils as vocab
 
 '''
@@ -25,6 +26,24 @@ def construct_templates():
                 ppn = ppns if attractor == 'singular' else ppnp
                 template = ' '.join(['The', '{}', p, 'the', ppn])
                 templates.append(template)
+    elif attractor in ('rc_singular', 'rc_plural', 'rc_singular_no_that', 'rc_plural_no_that'):
+        for noun2s, noun2p in get_nouns2():
+            noun2 = noun2s if attractor.startswith('rc_singular') else noun2p
+            for verb2s, verb2p in get_verbs2():
+                verb2 = verb2s if attractor.startswith('rc_singular') else verb2p
+                if attractor.endswith('no_that'):
+                    template = ' '.join(['The', '{}', 'the', noun2, verb2])
+                else:
+                    template = ' '.join(['The', '{}', 'that', 'the', noun2, verb2])
+                templates.append(template)
+    elif attractor in ('within_rc_singular', 'within_rc_plural', 'within_rc_singular_no_that', 'within_rc_plural_no_that'):
+        for noun2s, noun2p in get_nouns2():
+            noun2 = noun2s if attractor.startswith('within_rc_singular') else noun2p
+            if attractor.endswith('no_that'):
+                template = ' '.join(['The', '{}', 'the', noun2])
+            else:
+                template = ' '.join(['The', '{}', 'that', 'the', noun2])
+            templates.append(template)
     elif attractor == 'distractor':
         for  adv1 in  get_adv1s():
             for adv2 in get_adv2s():
