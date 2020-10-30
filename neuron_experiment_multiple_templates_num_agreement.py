@@ -48,6 +48,9 @@ def construct_templates():
         for  adv1 in  get_adv1s():
             for adv2 in get_adv2s():
                 templates.append(' '.join(['The', '{}', adv1, 'and', adv2]))
+    elif attractor == 'distractor_1':
+        for adv1 in get_adv1():
+            templates.append(' '.join(['The', '{}', adv1]))
 
     else:
         templates = ['The {}']
