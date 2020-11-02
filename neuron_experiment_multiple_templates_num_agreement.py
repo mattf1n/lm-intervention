@@ -126,7 +126,7 @@ if __name__ == "__main__":
     model = sys.argv[1] # distilgpt2, gpt2, gpt2-medium, gpt2-large, gpt2-xl
     device = sys.argv[2] # cpu vs cuda
     out_dir = sys.argv[3] # dir to write results
-    random_weights = sys.argv[4] == 'true' # true or false
+    random_weights = sys.argv[4] == 'random' # true or false
     attractor = sys.argv[5] # singular, plural or none
     seed = int(sys.argv[6]) # to allow consistent sampling
     examples = int(sys.argv[7]) # number of examples to try, 0 for all 
