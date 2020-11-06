@@ -212,7 +212,8 @@ def main():
     model_versions = ['gpt2']
     #filters = ['filtered', 'unfiltered']
     filters = ['filtered']
-    structures = ['distractor', 'distractor_1']
+    structures = ['distractor', 'distractor_1', 'singular', 'plural', 'rc_singular', 'rc_plural', \
+            'within_rc_singular', 'within_rc_plural']
     #structures = ['simple_agreement']
     #structures = ['within_obj_rel_no_that', 'across_obj_rel_no_that']
 
