@@ -71,12 +71,12 @@ def construct_templates(attractor):
                     template = ' '.join(['The', '{}', 'that', 'the', noun2, verb2])
                 templates.append(template)
     elif attractor in ('within_rc_singular', 'within_rc_plural', 'within_rc_singular_no_that', 'within_rc_plural_no_that'):
-        for noun2s, noun2p in get_nouns2():
-            noun2 = noun2s if attractor.startswith('within_rc_singular') else noun2p
+        for ns, np in vocab.get_nouns():
+            noun = ns if attractor.startswith('within_rc_singular') else np
             if attractor.endswith('no_that'):
-                template = ' '.join(['The', '{}', 'the', noun2])
+                template = ' '.join(['The', noun, 'the', '{}'])
             else:
-                template = ' '.join(['The', '{}', 'that', 'the', noun2])
+                template = ' '.join(['The', noun, 'that', 'the', '{}'])
             templates.append(template)
     elif attractor == 'distractor':
         for  adv1 in  get_adv1s():
@@ -97,20 +97,36 @@ def load_structural_interventions(tokenizer, device, attractor, seed, examples):
     used_word_count = 0
     templates = construct_templates(attractor)
     for temp in templates:
-        for ns, np in vocab.get_nouns():
-            for v_singular, v_plural in vocab.get_verbs():
-                all_word_count += 1
-                try:
-                    intervention_name = '_'.join([temp, ns, v_singular])
+        if attractor.startswith('within_rc'):
+            for noun2s, noun2p in get_nouns2():
+                for v_singular, v_plural in vocab.get_verbs():
+                    all_word_count += 1
+                    # try:
+                    intervention_name = '_'.join([temp, noun2s, v_singular])
                     interventions[intervention_name] = Intervention(
                         tokenizer,
                         temp,
-                        [ns, np],
+                        [noun2s, noun2p],
                         [v_singular, v_plural],
                         device=device)
                     used_word_count += 1
-                except Exception as e:
-                    pass
+                    #except Exception as e:
+                    #    pass
+        else:
+            for ns, np in vocab.get_nouns():
+                for v_singular, v_plural in vocab.get_verbs():
+                    all_word_count += 1
+                    try: 
+                        intervention_name = '_'.join([temp, ns, v_singular])
+                        interventions[intervention_name] = Intervention(
+                            tokenizer,
+                            temp,
+                            [ns, np],
+                            [v_singular, v_plural],
+                            device=device)
+                        used_word_count += 1
+                    except Exception as e:
+                        pass
     print(f"\t Only used {used_word_count}/{all_word_count} nouns due to tokenizer")
     if examples > 0 and len(interventions) >= examples:
         random.seed(seed)
@@ -159,7 +175,8 @@ def intervene_attention(gpt2_version, do_filter, attractor, device='cuda', filte
     interventions, json_data = get_interventions_structural(gpt2_version, do_filter,
                                                             model, tokenizer,
                                                             device, filter_quantile,
-                                                            seed=seed, attractor=attractor)
+                                                            seed=seed, attractor=attractor,
+                                                            examples=examples)
 
     results = perform_interventions(interventions, model)
     json_data['mean_total_effect'] = DataFrame(results).total_effect.mean()
