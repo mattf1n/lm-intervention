@@ -37,19 +37,19 @@ def construct_templates():
                     template = ' '.join(['The', '{}', 'that', 'the', noun2, verb2])
                 templates.append(template)
     elif attractor in ('within_rc_singular', 'within_rc_plural', 'within_rc_singular_no_that', 'within_rc_plural_no_that'):
-        for noun2s, noun2p in get_nouns2():
-            noun2 = noun2s if attractor.startswith('within_rc_singular') else noun2p
+        for ns, np in vocab.get_nouns():
+            noun = ns if attractor.startswith('within_rc_singular') else np
             if attractor.endswith('no_that'):
-                template = ' '.join(['The', '{}', 'the', noun2])
+                template = ' '.join(['The', noun, 'the', '{}'])
             else:
-                template = ' '.join(['The', '{}', 'that', 'the', noun2])
+                template = ' '.join(['The', noun, 'that', 'the', '{}'])
             templates.append(template)
     elif attractor == 'distractor':
         for  adv1 in  get_adv1s():
             for adv2 in get_adv2s():
                 templates.append(' '.join(['The', '{}', adv1, 'and', adv2]))
     elif attractor == 'distractor_1':
-        for adv1 in get_adv1():
+        for adv1 in get_adv1s():
             templates.append(' '.join(['The', '{}', adv1]))
 
     else:
@@ -62,20 +62,36 @@ def construct_interventions(tokenizer, DEVICE, attractor, seed, examples):
     used_word_count = 0
     templates = construct_templates()
     for temp in templates:
-        for ns, np in vocab.get_nouns():
-            for v_singular, v_plural in vocab.get_verbs():
-                all_word_count += 1
-                try: 
-                    intervention_name = '_'.join([temp, ns, v_singular])
-                    interventions[intervention_name] = Intervention(
-                        tokenizer,
-                        temp,
-                        [ns, np],
-                        [v_singular, v_plural],
-                        device=DEVICE)
-                    used_word_count += 1
-                except Exception as e:
-                    pass
+        if attractor.startswith('within_rc'):
+            for noun2s, noun2p in get_nouns2():
+                for v_singular, v_plural in vocab.get_verbs():
+                    all_word_count += 1
+                    try:
+                        intervention_name = '_'.join([temp, noun2s, v_singular])
+                        interventions[intervention_name] = Intervention(
+                            tokenizer,
+                            temp,
+                            [noun2s, noun2p],
+                            [v_singular, v_plural],
+                            device=DEVICE)
+                        used_word_count += 1
+                    except Exception as e:
+                        pass
+        else:
+            for ns, np in vocab.get_nouns():
+                for v_singular, v_plural in vocab.get_verbs():
+                    all_word_count += 1
+                    try: 
+                        intervention_name = '_'.join([temp, ns, v_singular])
+                        interventions[intervention_name] = Intervention(
+                            tokenizer,
+                            temp,
+                            [ns, np],
+                            [v_singular, v_plural],
+                            device=DEVICE)
+                        used_word_count += 1
+                    except Exception as e:
+                        pass
     print(f"\t Only used {used_word_count}/{all_word_count} nouns due to tokenizer")
     if examples > 0 and len(interventions) >= examples:
         random.seed(seed)
