@@ -12,6 +12,7 @@ import os
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from scipy import stats
 from matplotlib import pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
@@ -47,9 +48,7 @@ def save_figures(data, source, model_version, filter, suffix=None, k=10):
     direct_by_head = np.stack(df['direct_effect_head'].to_numpy())
     # Average by head
     mean_indirect_by_head = indirect_by_head.mean(axis=0)
-    std_indirect_by_head = indirect_by_head.std(axis=0)
     mean_direct_by_head = direct_by_head.mean(axis=0)
-    std_direct_by_head = direct_by_head.std(axis=0)
     # Select top k heads by indirect effect
     topk_inds = topk_indices(mean_indirect_by_head, k)
 
@@ -58,11 +57,16 @@ def save_figures(data, source, model_version, filter, suffix=None, k=10):
     indirect_by_layer = np.stack(df['indirect_effect_layer'].to_numpy())
     direct_by_layer = np.stack(df['direct_effect_layer'].to_numpy())
     mean_indirect_by_layer = indirect_by_layer.mean(axis=0)
+    # std_indirect_by_layer = indirect_by_layer.std(axis=0)
+    std_indirect_by_layer = stats.sem(indirect_by_layer, axis=0)
     mean_direct_by_layer = direct_by_layer.mean(axis=0)
+    # std_direct_by_layer = direct_by_layer.std(axis=0)
+    std_direct_by_layer = stats.sem(direct_by_layer, axis=0)
     n_layers = indirect_by_layer.shape[1]
 
     plt.rc('figure', titlesize=20)
 
+    '''
     # Plot stacked bar chart
     palette = sns.color_palette()#('muted')
     plt.figure(num=1, figsize=(5, 2))
@@ -95,19 +99,21 @@ def save_figures(data, source, model_version, filter, suffix=None, k=10):
     plt.savefig(f'{path}/{source}_{model_version}_{filter}.pdf', format='pdf')
     plt.close()
     annot = False
-
+    '''
+    
+    annot = False
+    '''
     # Plot heatmap for direct and indirect effect
     for effect_type in ('indirect', 'direct'):
         if effect_type == 'indirect':
-            #mean_effect = mean_indirect_by_head
-            mean_effect = std_indirect_by_head
+            mean_effect = mean_indirect_by_head
         else:
-            #mean_effect = mean_direct_by_head
-            mean_effect = std_direct_by_head
-        ax = sns.heatmap(mean_effect, rasterized=True, annot=annot, annot_kws={"size": 9}, fmt=".2f", square=True)
+            mean_effect = mean_direct_by_head
+        ax = sns.heatmap(mean_effect, rasterized=True, annot=annot, annot_kws={"size": 9}, fmt=".2f", square=True, \
+            vmin=-.016, vmax=.016, cmap = LinearSegmentedColormap.from_list('rg', ["#F14100", "white", "#3D4FC4"], N=256))
         ax.set(xlabel='Head', ylabel='Layer', title=f'Mean {effect_type.capitalize()} Effect')
         plt.figure(num=1, figsize=(7, 5))
-        path = f'attention_figures/heat_maps_std_{effect_type}'
+        path = f'attention_figures/heat_maps_{effect_type}_limit'
         if not os.path.exists(path):
             os.makedirs(path)
         plt.savefig(f'{path}/{source}_{model_version}_{filter}.pdf', format='pdf')
@@ -122,12 +128,65 @@ def save_figures(data, source, model_version, filter, suffix=None, k=10):
         plt.figure(num=1, figsize=(5, 5))
         ax = sns.barplot(x=mean_effect, y=list(range(n_layers)), orient="h", color="#4472C4")
         ax.set(ylabel='Layer', title=f'Mean {effect_type.capitalize()} Effect')
-        path = f'attention_figures/layer_{effect_type}'
+        path = f'attention_figures/layer_{effect_type}_limit'
+        if not os.path.exists(path):
+            os.makedirs(path)
+        plt.savefig(f'{path}/{source}_{model_version}_{filter}.pdf', format='pdf')
+        plt.close()
+    '''
+
+    # Plot line graph of layer vs. mean effect across heads
+    for effect_type in ('indirect', 'direct'):
+        if effect_type == 'indirect':
+            mean_effect = mean_indirect_by_layer
+            std_effect = std_indirect_by_layer
+        else:
+            mean_effect = mean_direct_by_layer  
+            std_effect = std_direct_by_layer
+        sns.set_theme(style="darkgrid")
+        x = list(range(n_layers))
+        plt.plot(x, mean_effect, 'b-')
+        plt.fill_between(x, mean_effect - std_effect, mean_effect + std_effect, color='b', alpha=0.15)
+        # ax = sns.lineplot(x=list(range(n_layers)), y=mean_effect)
+        # ax = sns.lineplot(y=y, ci="sd", data=df)
+        if effect_type == 'indirect':
+            plt.axhline(0, ls='--')
+        # plt.set(xlabel='Layer', ylabel='Mean effect across heads')
+        path = f'attention_figures/line_{effect_type}'
         if not os.path.exists(path):
             os.makedirs(path)
         plt.savefig(f'{path}/{source}_{model_version}_{filter}.pdf', format='pdf')
         plt.close()
 
+    # Experimental graphs
+    for effect_type in ('indirect', 'direct'):
+        if effect_type == 'indirect':
+            mean_effect = mean_indirect_by_head
+            # std_effect = std_indirect_by_layer
+        else:
+            mean_effect = mean_direct_by_head
+            # std_effect = std_direct_by_layer
+        sns.set_theme(style="darkgrid")
+        ax = sns.displot(mean_effect, kind='kde')
+        # ax.set(xlabel='Head', ylabel='Layer', title=f'Mean {effect_type.capitalize()} Effect')
+        # ax = sns.lineplot(y=y, ci="sd", data=df)
+        # ax.axhline(0, ls='--')
+        # ax.set(xlabel='Layer', ylabel='Mean effect across heads')
+        path = f'attention_figures/dist_{effect_type}'
+        if not os.path.exists(path):
+            os.makedirs(path)
+        plt.savefig(f'{path}/{source}_{model_version}_{filter}.pdf', format='pdf')
+        plt.close()
+
+    '''
+    for effect_type in ('indirect', 'direct'):
+        if effect_type == 'indirect':
+            mean_effect = mean_indirect_by_layer
+        else:
+            mean_effect = mean_direct_by_layer
+    '''
+
+    '''
     # Plot combined heatmap and barchart for direct and indirect effects
     for do_sort in False, True:
         for effect_type in ('indirect', 'direct'):
@@ -158,7 +217,7 @@ def save_figures(data, source, model_version, filter, suffix=None, k=10):
                 ax1 = plt.subplot2grid((100, 85), (0, 5), colspan=55, rowspan=96)
                 ax2 = plt.subplot2grid((100, 85), (0, 62), colspan=17, rowspan=97)
             heatmap = sns.heatmap(effect_head, center=0.0, ax=ax1, annot=annot, annot_kws={"size": 9}, fmt=".2f", square=True, cbar=False, linewidth=0.1, linecolor='#D0D0D0',
-            cmap = LinearSegmentedColormap.from_list('rg', ["#F14100", "white", "#3D4FC4"], N=256))
+                cmap = LinearSegmentedColormap.from_list('rg', ["#F14100", "white", "#3D4FC4"], N=256))
             plt.setp(heatmap.get_yticklabels(), fontsize=7)
             plt.setp(heatmap.get_xticklabels(), fontsize=7)
             heatmap.tick_params(axis='x', pad=1, length=2)
@@ -211,12 +270,13 @@ def save_figures(data, source, model_version, filter, suffix=None, k=10):
             ax2.spines['left'].set_visible(False)
             ax2.xaxis.set_ticks_position('bottom')
             ax2.axvline(0, linewidth=.85, color='black')
-            path = f'attention_figures/heat_maps_with_bar_{effect_type}{"_sorted" if do_sort else ""}'
+            path = f'attention_figures/heat_maps_with_bar_{effect_type}{"_sorted" if do_sort else ""}_limit'
             if not os.path.exists(path):
                 os.makedirs(path)
             fname = f'{path}/{source}_{model_version}_{filter}.pdf'
             plt.savefig(fname, format='pdf', bbox_inches='tight')
             plt.close()
+    '''
 
 def main():
     sns.set_context("paper")
@@ -224,8 +284,8 @@ def main():
 
     #model_versions = ['distilgpt2', 'gpt2', 'gpt2-medium', 'gpt2-large', 'gpt2-xl']
     model_versions = ['gpt2']
-    filters = ['unfiltered']
-    #filters = ['filtered']
+    #filters = ['filtered', 'unfiltered']
+    filters = ['filtered']
     structures = ['distractor', 'distractor_1', 'singular', 'plural', 'rc_singular', 'rc_plural', \
           'within_rc_singular', 'within_rc_plural', 'simple']
     # structures = ['simple']
