@@ -6,7 +6,9 @@ import random
 
 from utils_num_agreement import convert_results_to_pd
 from experiment_num_agreement import Intervention, Model
-from transformers import GPT2Tokenizer
+from transformers import (
+    GPT2Tokenizer, TransfoXLTokenizer, XLNetTokenizer
+)
 from vocab_utils import get_nouns, get_nouns2, get_verbs, get_verbs2, get_prepositions, \
         get_preposition_nouns, get_adv1s, get_adv2s
 import vocab_utils as vocab
@@ -105,9 +107,12 @@ def run_all(model_type="gpt2", device="cuda", out_dir=".",
     # Set up all the potential combinations
     intervention_types = get_intervention_types()
     # Initialize Model and Tokenizer
-    tokenizer = GPT2Tokenizer.from_pretrained(model_type)
+    # tokenizer = GPT2Tokenizer.from_pretrained(model_type)
     model = Model(device=device, gpt2_version=model_type, 
-            random_weights=random_weights)
+        random_weights=random_weights)
+    tokenizer = (GPT2Tokenizer if model.is_gpt2 else
+                 TransfoXLTokenizer if model.is_txl else
+                 XLNetTokenizer).from_pretrained(model_type)
     # Set up folder if it does not exist
     dt_string = datetime.now().strftime("%Y%m%d")
     folder_name = dt_string+"_neuron_intervention"
