@@ -727,36 +727,36 @@ class Model():
             # basically generate the mask for the layers_to_adj and heads_to_adj
             if search:
                 for layer in range(self.num_layers):
-                  layer_attention_override = attention_override[layer]
-                  layer_ind = np.where(layers_to_adj == layer)[0]
-                  heads_in_layer = heads_to_adj[layer_ind]
+                    layer_attention_override = attention_override[layer]
+                    layer_ind = np.where(layers_to_adj == layer)[0]
+                    heads_in_layer = heads_to_adj[layer_ind]
 
-                  for head in range(self.num_heads):
-                    if head not in heads_in_layer:
-                          model_attn_override_data_search = []
-                          attention_override_mask = torch.zeros_like(layer_attention_override, dtype=torch.uint8)
-                          heads_list = [head]
-                          if len(heads_in_layer) > 0:
-                            heads_list.extend(heads_in_layer)
-                          for h in (heads_list):
-                              attention_override_mask[0][h] = 1 # Set mask to 1 for single head only
-                          head_attn_override_data = [{
-                              'layer': layer,
-                              'attention_override': layer_attention_override,
-                              'attention_override_mask': attention_override_mask
-                          }]
-                          model_attn_override_data_search.extend(head_attn_override_data)
-                          for override in model_attn_override_data:
-                              if override['layer'] != layer:
-                                  model_attn_override_data_search.append(override)
-                                  
-                          candidate1_probs_head[layer][head], candidate2_probs_head[layer][head] = self.attention_intervention(
-                              context=context,
-                              outputs=intervention.candidates_tok,
-                              attn_override_data=model_attn_override_data_search)
-                    else: 
-                        candidate1_probs_head[layer][head] = -1
-                        candidate2_probs_head[layer][head] = -1
+                    for head in range(self.num_heads):
+                        if head not in heads_in_layer:
+                            model_attn_override_data_search = []
+                            attention_override_mask = torch.zeros_like(layer_attention_override, dtype=torch.uint8)
+                            heads_list = [head]
+                            if len(heads_in_layer) > 0:
+                                heads_list.extend(heads_in_layer)
+                            for h in (heads_list):
+                                attention_override_mask[0][h] = 1 # Set mask to 1 for single head only
+                            head_attn_override_data = [{
+                                'layer': layer,
+                                'attention_override': layer_attention_override,
+                                'attention_override_mask': attention_override_mask
+                            }]
+                            model_attn_override_data_search.extend(head_attn_override_data)
+                            for override in model_attn_override_data:
+                                if override['layer'] != layer:
+                                    model_attn_override_data_search.append(override)
+                                    
+                            candidate1_probs_head[layer][head], candidate2_probs_head[layer][head] = self.attention_intervention(
+                                context=context,
+                                outputs=intervention.candidates_tok,
+                                attn_override_data=model_attn_override_data_search)
+                        else: 
+                            candidate1_probs_head[layer][head] = -1
+                            candidate2_probs_head[layer][head] = -1
 
 
             else:
