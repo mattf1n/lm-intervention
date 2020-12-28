@@ -6,11 +6,13 @@ import random
 
 import sys
 from pandas import DataFrame
-from transformers import GPT2Tokenizer
+from transformers import (
+    GPT2Tokenizer, TransfoXLTokenizer, XLNetTokenizer
+)
 
 import winobias
 from attention_utils import perform_interventions, get_odds_ratio
-from experiment import Model, Intervention
+from experiment_num_agreement import Model, Intervention
 
 from vocab_utils import get_nouns, get_nouns2, get_verbs, get_verbs2, get_prepositions, \
         get_preposition_nouns, get_adv1s, get_adv2s
@@ -69,6 +71,8 @@ def construct_templates(attractor):
                     template = ' '.join(['The', '{}', 'the', noun2, verb2])
                 else:
                     template = ' '.join(['The', '{}', 'that', 'the', noun2, verb2])
+                    # templates.append(' '.join(['The', '{}', 'that', 'the', noun2s, verb2s]))
+                    # templates.append(' '.join(['The', '{}', 'that', 'the', noun2p, verb2p]))
                 templates.append(template)
     elif attractor in ('within_rc_singular', 'within_rc_plural', 'within_rc_singular_no_that', 'within_rc_plural_no_that'):
         for ns, np in vocab.get_nouns():
@@ -77,6 +81,8 @@ def construct_templates(attractor):
                 template = ' '.join(['The', noun, 'the', '{}'])
             else:
                 template = ' '.join(['The', noun, 'that', 'the', '{}'])
+                # templates.append(' '.join(['The', ns, 'that', 'the', '{}']))
+                # templates.append(' '.join(['The', np, 'that', 'the', '{}']))
             templates.append(template)
     elif attractor == 'distractor':
         for  adv1 in  get_adv1s():
@@ -101,17 +107,17 @@ def load_structural_interventions(tokenizer, device, attractor, seed, examples):
             for noun2s, noun2p in get_nouns2():
                 for v_singular, v_plural in vocab.get_verbs():
                     all_word_count += 1
-                    # try:
-                    intervention_name = '_'.join([temp, noun2s, v_singular])
-                    interventions[intervention_name] = Intervention(
-                        tokenizer,
-                        temp,
-                        [noun2s, noun2p],
-                        [v_singular, v_plural],
-                        device=device)
-                    used_word_count += 1
-                    #except Exception as e:
-                    #    pass
+                    try:
+                        intervention_name = '_'.join([temp, noun2s, v_singular])
+                        interventions[intervention_name] = Intervention(
+                            tokenizer,
+                            temp,
+                            [noun2s, noun2p],
+                            [v_singular, v_plural],
+                            device=device)
+                        used_word_count += 1
+                    except Exception as e:
+                        pass
         else:
             for ns, np in vocab.get_nouns():
                 for v_singular, v_plural in vocab.get_verbs():
@@ -139,6 +145,7 @@ def get_interventions_structural(gpt2_version, do_filter, model, tokenizer,
                                  device='cuda', filter_quantile=0.25, seed=3, attractor=None, examples=100):
     interventions = load_structural_interventions(tokenizer, device, attractor, seed, examples)
     intervention_list = [intervention for intervention in interventions.values()]
+    interventions = intervention_list
     
     json_data = {'model_version': gpt2_version,
             'do_filter': do_filter,
@@ -169,8 +176,11 @@ def get_interventions_structural(gpt2_version, do_filter, model, tokenizer,
 def intervene_attention(gpt2_version, do_filter, attractor, device='cuda', filter_quantile=0.25, examples=100,\
         seed=3, random_weights=False):
 
-    model = Model(output_attentions=True, gpt2_version=gpt2_version, device=device, random_weights=random_weights)
-    tokenizer = GPT2Tokenizer.from_pretrained(gpt2_version)
+    model = Model(output_attentions=True, gpt2_version=gpt2_version,
+                   device=device, random_weights=random_weights)
+    tokenizer = (GPT2Tokenizer if model.is_gpt2 else
+                  TransfoXLTokenizer if model.is_txl else
+                  XLNetTokenizer if model.is_xlnet).from_pretrained(gpt2_version)
 
     interventions, json_data = get_interventions_structural(gpt2_version, do_filter,
                                                             model, tokenizer,
@@ -202,5 +212,7 @@ if __name__ == "__main__":
     attractor = sys.argv[5]
     seed = int(sys.argv[6])
     examples = int(sys.argv[7])
-    intervene_attention(model, True, attractor, device=device, filter_quantile=filter_quantile, examples=examples, \
-            seed=seed, random_weights=random_weights)
+    #intervene_attention(model, True, attractor, device=device, filter_quantile=filter_quantile, examples=examples, \
+    #        seed=seed, random_weights=random_weights)
+    intervene_attention(model, False, attractor, device=device, filter_quantile=0.0, examples=examples, seed=seed, \
+            random_weights=random_weights)
