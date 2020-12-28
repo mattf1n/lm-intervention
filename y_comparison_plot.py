@@ -8,12 +8,13 @@ sns.set()
 PATH = sys.argv[1]
 FIGURES_PATH = sys.argv[2]
 AGG = sys.argv[3] == 'true'
+DEBUG = sys.argv[4] == 'debug'
 MODELS = ['Distil', 'Small', 'Medium', 'Large', 'XL']
 EXAMPLE_TYPES = ['None', 'Distractor', 'Plural attractor', 
         'Singular attractor']
 FORMAT = '.pdf'
 
-gb = ['Model size', 'Intervening tokens'] if AGG \
+gb = ['Model size', 'Intervening tokens'] if AGG or DEBUG\
         else ['Model size', 'Intervening tokens', 'base_string', 'candidate1']
 
 def save_y_comparisons():
