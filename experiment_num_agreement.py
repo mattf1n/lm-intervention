@@ -271,6 +271,7 @@ class Model():
         Returns: list containing probability for each candidate
         """
         # TODO: Combine into single batch
+        token_log_probs = []
         mean_probs = []
         context = context.tolist()
         for candidate in candidates:
@@ -429,13 +430,16 @@ class Model():
                                          XLNetAttentionOverride)(
                         module, attn_override, attn_override_mask
                     )
+
             # outputs[:] = attention_override_module(*input)
             return attention_override_module(*input)
 
         with torch.no_grad():
             hooks = []
             for d in attn_override_data:
-                attn_override = d['attention_override']
+                # attn_override = d['attention_override']
+                # try zeroing out attention weights
+                attn_override = torch.zeros_like(d['attention_override'])
                 attn_override_mask = d['attention_override_mask']
                 layer = d['layer']
                 hooks.append(self.attention_layer(layer).register_forward_hook(
@@ -449,6 +453,7 @@ class Model():
 
             for hook in hooks:
                 hook.remove()
+            
             return new_probabilities
 
     def neuron_intervention_experiment(self,
