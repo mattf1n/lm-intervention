@@ -478,7 +478,7 @@ class Model():
                                               intervention,
                                               intervention_type, layers_to_adj=[], neurons_to_adj=[],
                                               alpha=100,
-                                              bsize=800, intervention_loc='all'):
+                                              bsize=20, intervention_loc='all'):
         """
         run one full neuron intervention experiment
         """
