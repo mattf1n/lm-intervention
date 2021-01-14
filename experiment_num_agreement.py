@@ -358,7 +358,9 @@ class Model():
             for n in neurons:
                 unsorted_n_list = [n[i] for i in neuron_loc]
                 n_list.append(list(np.sort(unsorted_n_list)))
-            intervention_rep = alpha * rep[layer][n_list]
+            if self.is_txl: m_list = list(np.array(n_list).squeeze())
+            else: m_list = n_list
+            intervention_rep = alpha * rep[layer][m_list]
             if layer == -1:
                 handle_list.append(self.word_emb_layer.register_forward_hook(
                     partial(intervention_hook,
@@ -478,10 +480,12 @@ class Model():
                                               intervention,
                                               intervention_type, layers_to_adj=[], neurons_to_adj=[],
                                               alpha=100,
-                                              bsize=20, intervention_loc='all'):
+                                              bsize=800, intervention_loc='all'):
         """
         run one full neuron intervention experiment
         """
+
+        if self.is_txl: bsize = 100
 
         if self.is_xlnet or self.is_txl: 32
         with torch.no_grad():
