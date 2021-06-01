@@ -4,7 +4,7 @@ describes describe
 follows follow
 influences influence
 forgives forgive
-protects protect 
+protects protect
 informs inform
 visits visit
 likes like
