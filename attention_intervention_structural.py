@@ -10,49 +10,12 @@ from transformers import (
     GPT2Tokenizer, TransfoXLTokenizer, XLNetTokenizer
 )
 
-import winobias
 from attention_utils import perform_interventions, get_odds_ratio
 from experiment_num_agreement import Model, Intervention
 
 from vocab_utils import get_nouns, get_nouns2, get_verbs, get_verbs2, get_prepositions, \
         get_preposition_nouns, get_adv1s, get_adv2s
 import vocab_utils as vocab
-
-def get_interventions_winobias(gpt2_version, do_filter, split, model, tokenizer,
-                                device='cuda', filter_quantile=0.25):
-    if split == 'dev':
-        examples = winobias.load_dev_examples()
-    elif split == 'test':
-        examples = winobias.load_test_examples()
-    else:
-        raise ValueError(f"Invalid split: {split}")
-    json_data = {'model_version': gpt2_version,
-            'do_filter': do_filter,
-            'split': split,
-            'num_examples_loaded': len(examples)}
-    if do_filter:
-        interventions = [ex.to_intervention(tokenizer) for ex in examples]
-        df = DataFrame({'odds_ratio': [get_odds_ratio(intervention, model) for intervention in interventions]})
-        df_expected = df[df.odds_ratio > 1]
-        threshold = df_expected.odds_ratio.quantile(filter_quantile)
-        filtered_examples = []
-        assert len(examples) == len(df)
-        for i in range(len(examples)):
-            ex = examples[i]
-            odds_ratio = df.iloc[i].odds_ratio
-            if odds_ratio > threshold:
-                filtered_examples.append(ex)
-
-        print(f'Num examples with odds ratio > 1: {len(df_expected)} / {len(examples)}')
-        print(
-            f'Num examples with odds ratio > {threshold:.4f} ({filter_quantile} quantile): {len(filtered_examples)} / {len(examples)}')
-        json_data['num_examples_aligned'] = len(df_expected)
-        json_data['filter_quantile'] = filter_quantile
-        json_data['threshold'] = threshold
-        examples = filtered_examples
-    json_data['num_examples_analyzed'] = len(examples)
-    interventions = [ex.to_intervention(tokenizer) for ex in examples]
-    return interventions, json_data
 
 def construct_templates(attractor):
     templates = []
@@ -180,7 +143,9 @@ def intervene_attention(gpt2_version, do_filter, attractor, device='cuda', filte
                    device=device, random_weights=random_weights)
     tokenizer = (GPT2Tokenizer if model.is_gpt2 else
                   TransfoXLTokenizer if model.is_txl else
-                  XLNetTokenizer if model.is_xlnet).from_pretrained(gpt2_version)
+                  # XLNetTokenizer if model.is_xlnet
+                  XLNetTokenizer
+                  ).from_pretrained(gpt2_version)
 
     interventions, json_data = get_interventions_structural(gpt2_version, do_filter,
                                                             model, tokenizer,
@@ -203,7 +168,6 @@ def intervene_attention(gpt2_version, do_filter, attractor, device='cuda', filte
     with open(fname, 'w') as f:
         json.dump(json_data, f)
 
-# TODO
 if __name__ == "__main__":
     model = sys.argv[1]
     device = sys.argv[2]
