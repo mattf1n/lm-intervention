@@ -13,7 +13,11 @@ EXAMPLE_TYPES = ['None', 'Distractor', 'Plural attractor',
 FORMAT = '.pdf'
 
 def save_aggregate_total_effect_bar():
-    df = pd.read_feather(PATH + 'effects.feather')
+    try: df = pd.read_feather(PATH + 'effects.feather')
+    except: 
+        print(PATH + 'effects.feather not found.' 
+                + f'Run `make_feathers.py {PATH}` to generate.')
+        return
     data = df[~df.Random & (df['Effect type'] == 'Indirect')]\
             .groupby(['Model size', 'Intervening tokens', 'base_string', 
                 'candidate1'])\
