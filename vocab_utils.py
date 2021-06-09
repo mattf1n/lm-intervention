@@ -17,11 +17,12 @@ nounpp = pd.read_csv(PATH + 'nounpp.txt', sep=' |\t|_',
                             'pp_number', 'grammaticality', 'id'])
 
 adv = pd.read_csv(PATH + 'adv_conjunction.txt', sep=' |\t|_', engine='python',
-        names=['The','noun','adv1', 'and', 'adv2','verb','number','grammaticality','id'])
+        names=['The','noun','adv1', 'and', 'adv2','verb','number',
+            'grammaticality','id'])
 
 rc = pd.read_csv(PATH + 'rc.txt', sep=' |\t|_', engine='python',
-        names=['The','noun','that','the','noun2','verb2','verb','n1_number','n2_number',
-                'grammaticality','id'])
+        names=['The','noun','that','the','noun2','verb2','verb','n1_number',
+            'n2_number', 'grammaticality','id'])
 
 within_rc = pd.read_csv(PATH + 'within_rc.txt', sep=' |\t|_', engine='python',
         names=['The','noun','that','the','noun2','verb','n1_number','n2_number',

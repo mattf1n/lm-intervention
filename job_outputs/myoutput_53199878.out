@@ -1,9 +1,0 @@
-Model: transfo-xl-wt103
-subset of templates: ['The {} ate because']
-****** NEW: Using TransfoXL model
-Running template "The {} ate because" now...
-	 Only used 320/320 professions due to tokenizer
-	 Running with intervention: man_direct
-	 Running with intervention: man_indirect
-	 Running with intervention: woman_direct
-	 Running with intervention: woman_indirect
