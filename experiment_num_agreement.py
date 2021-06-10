@@ -10,11 +10,6 @@ from tqdm import tqdm
 import math
 import statistics
 
-# from collections import Counter, defaultdict
-
-# import pandas as pd
-# import seaborn as sns
-# import matplotlib.pyplot as plt
 from utils_num_agreement import batch, convert_results_to_pd
 from transformers import (
     GPT2LMHeadModel, GPT2Tokenizer,
@@ -23,7 +18,6 @@ from transformers import (
 )
 from transformers_modified.modeling_transfo_xl import TransfoXLLMHeadModel
 from transformers_modified.modeling_xlnet import XLNetLMHeadModel
-#from gpt2_attention import AttentionOverride
 from attention_intervention_model import (
     AttentionOverride, TXLAttentionOverride, XLNetAttentionOverride
 )

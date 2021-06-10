@@ -228,18 +228,6 @@ def main():
     #filters = ['filtered']
     structures = ['distractor', 'distractor_1', 'singular', 'plural', 'rc_singular', 'rc_plural', \
           'within_rc_singular', 'within_rc_plural', 'simple']
-    # structures = ['simple']
-
-    # For testing:
-    #
-    # model_version = 'gpt2'
-    # split = 'dev'
-    # filter = 'filtered'
-    # fname = f"winobias_data/attention_intervention_{model_version}_{filter}_{split}.json"
-    # with open(fname) as f:
-    #     data = json.load(f)
-    #     save_figures(data, 'winobias', model_version, filter, split)
-    # return
 
     # process structural bias
     for model_version in model_versions:
@@ -259,32 +247,6 @@ def main():
                         data = json.load(f)
                     save_figures(data, structure, model_version, filter)
             
-
-    '''
-    # Process winobias
-    for model_version in model_versions:
-        for filter in filters:
-            for split in ['dev', 'test']:
-                fname =  f"winobias_data/attention_intervention_{model_version}_{filter}_{split}.json"
-                if not os.path.exists(fname):
-                    print('File does not exist:', fname)
-                    continue
-                with open(fname) as f:
-                    data = json.load(f)
-                    save_figures(data, 'winobias', model_version, filter, split)
-
-    # Process winogender
-    for model_version in model_versions:
-        for filter in filters:
-            for stat in ['bergsma', 'bls']:
-                fname = f"winogender_data/attention_intervention_{stat}_{model_version}_{filter}.json"
-                if not os.path.exists(fname):
-                    print('File does not exist:', fname)
-                    continue
-                with open(fname) as f:
-                    data = json.load(f)
-                    save_figures(data, 'winogender', model_version, filter, stat)
-    '''
 
 if __name__ == '__main__':
     main()

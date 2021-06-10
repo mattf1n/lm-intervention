@@ -187,7 +187,7 @@ def topk_indices(arr, k):
 
 if __name__ == "__main__":
     from transformers import GPT2Tokenizer
-    from experiment import Intervention, Model
+    from experiment_num_agreement import Intervention, Model
     from pandas import DataFrame
     tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
     model = Model(output_attentions=True)
