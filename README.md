@@ -1,5 +1,6 @@
 # lm-intervention
-Intervention experiments in language models
+
+Neuron and attention head intervention experiments in transformer language models for causal mediation analysis for subject-verb number agreement.
 
 ## Requirements
 
@@ -27,7 +28,7 @@ Drop-in values for [noun], [verb], etc., can be found in `vocab/wordlists`.
 To run the experiment, run 
 ```
 python neuron_experiment_multiple_templates_num_agreement.py \
-<model> <device> <out_dir> <random_weights> <attractor> <seed> <examples>`
+<model> <device> <out_dir> <random_weights> <attractor> <seed> <examples>
 ```
 from the project directory.
 
@@ -59,7 +60,7 @@ examples: Integer number of examples to use from the template.
 Running this experiment is very computationally expensive, and can take hours on a GPU. The outputs also require gigabytes of space for the largest models.
 
 Results are output to `results/<date>_neuron_intervention/<attractor>_<direct|indirect>_<model>.csv`
-Once all outputs are obtained, running `python make_feathers.py <out_dir>/results` space-efficient `.feather` files from the `.csv` files.
+Once all outputs are obtained, running `python make_feathers.py <out_dir>/results` generates space-efficient `.feather` files from the `.csv` files.
 
 ### Attention head interventions
 
