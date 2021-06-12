@@ -21,6 +21,7 @@ def get_intervention_types():
     return ['indirect', 'direct']
 
 def construct_templates():
+    # specify format of inputs. fill in with terminals later
     templates = []
     if attractor in  ['singular', 'plural']:
         for p in get_prepositions():
@@ -54,7 +55,7 @@ def construct_templates():
         for adv1 in get_adv1s():
             templates.append(' '.join(['The', '{}', adv1]))
 
-    else:
+    else:   # defaults to simple agreement
         templates = ['The {}']
     return templates
 
@@ -95,7 +96,7 @@ def construct_interventions(tokenizer, DEVICE, attractor, seed, examples):
                     except Exception as e:
                         pass
     print(f"\t Only used {used_word_count}/{all_word_count} nouns due to tokenizer")
-    if examples > 0 and len(interventions) >= examples:
+    if examples > 0 and len(interventions) >= examples:     # randomly sample input sentences
         random.seed(seed)
         interventions = {k: v 
                 for k, v in random.sample(interventions.items(), examples)}

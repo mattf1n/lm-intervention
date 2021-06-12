@@ -54,7 +54,7 @@ attractor: Which syntactic structure to use
 seed: Integer random seed for reproducible results
 
 examples: Integer number of examples to use from the template. 
-  0 uses all examples.
+  0 uses all examples. We use 300 in our paper.
 ```
 
 Running this experiment is very computationally expensive, and can take hours on a GPU. The outputs also require gigabytes of space for the largest models. This is why we sample a few hundred examples, rather than run on all possible sentences that could be generated from our vocabulary.

@@ -433,9 +433,10 @@ class Model():
         with torch.no_grad():
             hooks = []
             for d in attn_override_data:
-                # attn_override = d['attention_override']
-                # try zeroing out attention weights
-                attn_override = torch.zeros_like(d['attention_override'])
+                # use the statement in the line below for the `swap_number` intervention.
+                attn_override = d['attention_override']
+                # uncomment the line below to use the `zero` intervention.
+                # attn_override = torch.zeros_like(d['attention_override'])
                 attn_override_mask = d['attention_override_mask']
                 layer = d['layer']
                 hooks.append(self.attention_layer(layer).register_forward_hook(
